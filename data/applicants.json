@@ -1,0 +1,79 @@
+[
+  {
+    "id": "app001",
+    "jobId": "job001",
+    "name": "Saad Mahmood",
+    "email": "saad.mahmood@gmail.com",
+    "phone": "+92 300 1112233",
+    "experience": "5 years",
+    "status": "interview",
+    "appliedDate": "2026-04-20",
+    "resumeScore": 85
+  },
+  {
+    "id": "app002",
+    "jobId": "job001",
+    "name": "Rabia Noor",
+    "email": "rabia.noor@outlook.com",
+    "phone": "+92 321 4445566",
+    "experience": "4 years",
+    "status": "screening",
+    "appliedDate": "2026-04-25",
+    "resumeScore": 78
+  },
+  {
+    "id": "app003",
+    "jobId": "job002",
+    "name": "Ali Raza",
+    "email": "ali.raza@yahoo.com",
+    "phone": "+92 333 7778899",
+    "experience": "6 years",
+    "status": "screening",
+    "appliedDate": "2026-05-03",
+    "resumeScore": 92
+  },
+  {
+    "id": "app004",
+    "jobId": "job003",
+    "name": "Mehwish Akram",
+    "email": "mehwish.akram@gmail.com",
+    "phone": "+92 345 2223344",
+    "experience": "3 years",
+    "status": "applied",
+    "appliedDate": "2026-05-12",
+    "resumeScore": 70
+  },
+  {
+    "id": "app005",
+    "jobId": "job005",
+    "name": "Faisal Sheikh",
+    "email": "faisal.sheikh@company.com",
+    "phone": "+92 312 5556677",
+    "experience": "7 years",
+    "status": "interview",
+    "appliedDate": "2026-05-08",
+    "resumeScore": 88
+  },
+  {
+    "id": "app006",
+    "jobId": "job001",
+    "name": "Amina Bukhari",
+    "email": "amina.bukhari@gmail.com",
+    "phone": "+92 302 8889900",
+    "experience": "3 years",
+    "status": "rejected",
+    "appliedDate": "2026-04-18",
+    "resumeScore": 55
+  },
+  {
+    "id": "app007",
+    "jobId": "job004",
+    "name": "Kamran Butt",
+    "email": "kamran.butt.candidate@gmail.com",
+    "phone": "+92 335 1239876",
+    "experience": "2 years",
+    "status": "hired",
+    "appliedDate": "2026-02-15",
+    "resumeScore": 90
+  }
+]

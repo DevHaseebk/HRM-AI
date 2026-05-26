@@ -1,0 +1,68 @@
+[
+  {
+    "id": "perf001",
+    "employeeId": "emp001",
+    "period": "Q1 2026",
+    "rating": 4.2,
+    "goals": 5,
+    "goalsCompleted": 4,
+    "reviewerId": "emp003",
+    "status": "completed",
+    "comments": "Strong delivery on sprint goals. Good collaboration with team."
+  },
+  {
+    "id": "perf002",
+    "employeeId": "emp003",
+    "period": "Q1 2026",
+    "rating": 4.8,
+    "goals": 6,
+    "goalsCompleted": 6,
+    "reviewerId": "emp015",
+    "status": "completed",
+    "comments": "Excellent leadership. Team velocity improved significantly."
+  },
+  {
+    "id": "perf003",
+    "employeeId": "emp007",
+    "period": "Q1 2026",
+    "rating": 3.9,
+    "goals": 4,
+    "goalsCompleted": 3,
+    "reviewerId": "emp003",
+    "status": "completed",
+    "comments": "Solid backend work. Needs improvement in documentation."
+  },
+  {
+    "id": "perf004",
+    "employeeId": "emp008",
+    "period": "Q2 2026",
+    "rating": 4.0,
+    "goals": 4,
+    "goalsCompleted": 2,
+    "reviewerId": "emp003",
+    "status": "in_progress",
+    "comments": "Good test coverage. Working on automation pipeline."
+  },
+  {
+    "id": "perf005",
+    "employeeId": "emp014",
+    "period": "Q1 2026",
+    "rating": 4.5,
+    "goals": 5,
+    "goalsCompleted": 5,
+    "reviewerId": "emp015",
+    "status": "completed",
+    "comments": "Outstanding HR operations management."
+  },
+  {
+    "id": "perf006",
+    "employeeId": "emp006",
+    "period": "Q2 2026",
+    "rating": 0,
+    "goals": 3,
+    "goalsCompleted": 0,
+    "reviewerId": "emp004",
+    "status": "pending",
+    "comments": "Review scheduled for end of quarter."
+  }
+]

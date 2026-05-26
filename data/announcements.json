@@ -1,0 +1,47 @@
+[
+  {
+    "id": "ann001",
+    "title": "Eid ul Adha Office Closure",
+    "content": "The office will remain closed from June 16 to June 20, 2026 for Eid ul Adha holidays. Emergency contact numbers will be shared via email.",
+    "authorId": "emp014",
+    "priority": "high",
+    "createdAt": "2026-05-20",
+    "department": "All"
+  },
+  {
+    "id": "ann002",
+    "title": "New Health Insurance Policy",
+    "content": "We are pleased to announce an upgraded health insurance plan covering OPD and hospitalization for all employees and dependents effective July 1, 2026.",
+    "authorId": "emp014",
+    "priority": "medium",
+    "createdAt": "2026-05-15",
+    "department": "HR"
+  },
+  {
+    "id": "ann003",
+    "title": "Quarterly Town Hall - Q2 2026",
+    "content": "Join us on May 30, 2026 at 3:00 PM in the Karachi office auditorium for our Q2 town hall. Remote employees can join via Zoom link.",
+    "authorId": "emp015",
+    "priority": "medium",
+    "createdAt": "2026-05-10",
+    "department": "All"
+  },
+  {
+    "id": "ann004",
+    "title": "Engineering Sprint Review",
+    "content": "Sprint 24 review scheduled for May 28, 2026. All engineering team members must attend and present their deliverables.",
+    "authorId": "emp003",
+    "priority": "low",
+    "createdAt": "2026-05-22",
+    "department": "Engineering"
+  },
+  {
+    "id": "ann005",
+    "title": "Ramadan Timings Reminder",
+    "content": "Office timings during Ramadan were 10:00 AM to 4:00 PM. Regular timings resume from May 1, 2026.",
+    "authorId": "emp014",
+    "priority": "low",
+    "createdAt": "2026-04-01",
+    "department": "All"
+  }
+]

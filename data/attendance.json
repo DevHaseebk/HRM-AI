@@ -1,0 +1,191 @@
+[
+  {
+    "id": "att001",
+    "employeeId": "emp001",
+    "date": "2026-05-01",
+    "checkIn": "09:02",
+    "checkOut": "18:15",
+    "status": "present",
+    "hoursWorked": 9.2
+  },
+  {
+    "id": "att002",
+    "employeeId": "emp001",
+    "date": "2026-05-02",
+    "checkIn": "09:10",
+    "checkOut": "18:00",
+    "status": "present",
+    "hoursWorked": 8.8
+  },
+  {
+    "id": "att003",
+    "employeeId": "emp001",
+    "date": "2026-05-05",
+    "checkIn": "09:00",
+    "checkOut": "18:30",
+    "status": "present",
+    "hoursWorked": 9.5
+  },
+  {
+    "id": "att004",
+    "employeeId": "emp001",
+    "date": "2026-05-06",
+    "checkIn": null,
+    "checkOut": null,
+    "status": "absent",
+    "hoursWorked": 0
+  },
+  {
+    "id": "att005",
+    "employeeId": "emp001",
+    "date": "2026-05-07",
+    "checkIn": "09:05",
+    "checkOut": "17:45",
+    "status": "present",
+    "hoursWorked": 8.7
+  },
+  {
+    "id": "att006",
+    "employeeId": "emp003",
+    "date": "2026-05-01",
+    "checkIn": "08:55",
+    "checkOut": "19:00",
+    "status": "present",
+    "hoursWorked": 10.1
+  },
+  {
+    "id": "att007",
+    "employeeId": "emp003",
+    "date": "2026-05-02",
+    "checkIn": "09:00",
+    "checkOut": "18:45",
+    "status": "present",
+    "hoursWorked": 9.8
+  },
+  {
+    "id": "att008",
+    "employeeId": "emp003",
+    "date": "2026-05-05",
+    "checkIn": "09:15",
+    "checkOut": "18:00",
+    "status": "late",
+    "hoursWorked": 8.8
+  },
+  {
+    "id": "att009",
+    "employeeId": "emp007",
+    "date": "2026-05-01",
+    "checkIn": "09:00",
+    "checkOut": "18:00",
+    "status": "present",
+    "hoursWorked": 9
+  },
+  {
+    "id": "att010",
+    "employeeId": "emp007",
+    "date": "2026-05-02",
+    "checkIn": "09:30",
+    "checkOut": "18:00",
+    "status": "late",
+    "hoursWorked": 8.5
+  },
+  {
+    "id": "att011",
+    "employeeId": "emp008",
+    "date": "2026-05-01",
+    "checkIn": "09:00",
+    "checkOut": "18:00",
+    "status": "present",
+    "hoursWorked": 9
+  },
+  {
+    "id": "att012",
+    "employeeId": "emp008",
+    "date": "2026-05-05",
+    "checkIn": null,
+    "checkOut": null,
+    "status": "on_leave",
+    "hoursWorked": 0
+  },
+  {
+    "id": "att013",
+    "employeeId": "emp005",
+    "date": "2026-05-01",
+    "checkIn": "08:45",
+    "checkOut": "17:30",
+    "status": "present",
+    "hoursWorked": 8.8
+  },
+  {
+    "id": "att014",
+    "employeeId": "emp005",
+    "date": "2026-05-02",
+    "checkIn": "09:00",
+    "checkOut": "18:00",
+    "status": "present",
+    "hoursWorked": 9
+  },
+  {
+    "id": "att015",
+    "employeeId": "emp014",
+    "date": "2026-05-01",
+    "checkIn": "09:00",
+    "checkOut": "18:00",
+    "status": "present",
+    "hoursWorked": 9
+  },
+  {
+    "id": "att016",
+    "employeeId": "emp014",
+    "date": "2026-05-02",
+    "checkIn": "09:00",
+    "checkOut": "18:00",
+    "status": "present",
+    "hoursWorked": 9
+  },
+  {
+    "id": "att017",
+    "employeeId": "emp002",
+    "date": "2026-05-01",
+    "checkIn": "09:05",
+    "checkOut": "17:55",
+    "status": "present",
+    "hoursWorked": 8.8
+  },
+  {
+    "id": "att018",
+    "employeeId": "emp006",
+    "date": "2026-05-01",
+    "checkIn": "09:20",
+    "checkOut": "18:00",
+    "status": "late",
+    "hoursWorked": 8.7
+  },
+  {
+    "id": "att019",
+    "employeeId": "emp013",
+    "date": "2026-05-01",
+    "checkIn": "09:00",
+    "checkOut": "18:00",
+    "status": "present",
+    "hoursWorked": 9
+  },
+  {
+    "id": "att020",
+    "employeeId": "emp015",
+    "date": "2026-05-01",
+    "checkIn": "08:30",
+    "checkOut": "19:30",
+    "status": "present",
+    "hoursWorked": 11
+  },
+  {
+    "id": "attmpmhz7lt2jr8",
+    "employeeId": "emp003",
+    "date": "2026-05-26",
+    "checkIn": "09:00",
+    "checkOut": "18:00",
+    "status": "present",
+    "hoursWorked": 9
+  }
+]

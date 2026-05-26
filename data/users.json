@@ -1,0 +1,34 @@
+[
+  {
+    "id": "u1",
+    "email": "super@hr.com",
+    "password": "pass123",
+    "role": "super_admin",
+    "name": "Super Admin",
+    "employeeId": null
+  },
+  {
+    "id": "u2",
+    "email": "hr@hr.com",
+    "password": "pass123",
+    "role": "hr_manager",
+    "name": "Sana Malik",
+    "employeeId": "emp014"
+  },
+  {
+    "id": "u3",
+    "email": "lead@hr.com",
+    "password": "pass123",
+    "role": "team_lead",
+    "name": "Usman Ali",
+    "employeeId": "emp003"
+  },
+  {
+    "id": "u4",
+    "email": "emp@hr.com",
+    "password": "pass123",
+    "role": "employee",
+    "name": "Ahmed Hassan",
+    "employeeId": "emp001"
+  }
+]

@@ -1,0 +1,112 @@
+[
+  {
+    "id": "pr001",
+    "employeeId": "emp001",
+    "month": "2026-04",
+    "basicSalary": 185000,
+    "allowances": 25000,
+    "deductions": 8500,
+    "netSalary": 201500,
+    "status": "paid",
+    "paidOn": "2026-05-01"
+  },
+  {
+    "id": "pr002",
+    "employeeId": "emp003",
+    "month": "2026-04",
+    "basicSalary": 320000,
+    "allowances": 45000,
+    "deductions": 15000,
+    "netSalary": 350000,
+    "status": "paid",
+    "paidOn": "2026-05-01"
+  },
+  {
+    "id": "pr003",
+    "employeeId": "emp007",
+    "month": "2026-04",
+    "basicSalary": 195000,
+    "allowances": 22000,
+    "deductions": 9200,
+    "netSalary": 207800,
+    "status": "paid",
+    "paidOn": "2026-05-01"
+  },
+  {
+    "id": "pr004",
+    "employeeId": "emp014",
+    "month": "2026-04",
+    "basicSalary": 350000,
+    "allowances": 50000,
+    "deductions": 18000,
+    "netSalary": 382000,
+    "status": "paid",
+    "paidOn": "2026-05-01"
+  },
+  {
+    "id": "pr005",
+    "employeeId": "emp015",
+    "month": "2026-04",
+    "basicSalary": 850000,
+    "allowances": 120000,
+    "deductions": 45000,
+    "netSalary": 925000,
+    "status": "paid",
+    "paidOn": "2026-05-01"
+  },
+  {
+    "id": "pr006",
+    "employeeId": "emp001",
+    "month": "2026-05",
+    "basicSalary": 185000,
+    "allowances": 25000,
+    "deductions": 8500,
+    "netSalary": 201500,
+    "status": "processing",
+    "paidOn": null
+  },
+  {
+    "id": "pr007",
+    "employeeId": "emp003",
+    "month": "2026-05",
+    "basicSalary": 320000,
+    "allowances": 45000,
+    "deductions": 15000,
+    "netSalary": 350000,
+    "status": "processing",
+    "paidOn": null
+  },
+  {
+    "id": "pr008",
+    "employeeId": "emp005",
+    "month": "2026-04",
+    "basicSalary": 210000,
+    "allowances": 28000,
+    "deductions": 10000,
+    "netSalary": 228000,
+    "status": "paid",
+    "paidOn": "2026-05-01"
+  },
+  {
+    "id": "pr009",
+    "employeeId": "emp010",
+    "month": "2026-04",
+    "basicSalary": 240000,
+    "allowances": 35000,
+    "deductions": 12000,
+    "netSalary": 263000,
+    "status": "paid",
+    "paidOn": "2026-05-01"
+  },
+  {
+    "id": "pr010",
+    "employeeId": "emp002",
+    "month": "2026-04",
+    "basicSalary": 145000,
+    "allowances": 18000,
+    "deductions": 6500,
+    "netSalary": 156500,
+    "status": "paid",
+    "paidOn": "2026-05-01"
+  }
+]

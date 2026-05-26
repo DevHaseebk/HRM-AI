@@ -1,0 +1,62 @@
+[
+  {
+    "id": "job001",
+    "title": "Senior Full Stack Developer",
+    "department": "Engineering",
+    "location": "Karachi",
+    "type": "Full-time",
+    "salaryRange": "250,000 - 350,000 PKR",
+    "status": "open",
+    "postedDate": "2026-04-15",
+    "deadline": "2026-06-15",
+    "description": "Looking for an experienced full stack developer with React and Node.js expertise."
+  },
+  {
+    "id": "job002",
+    "title": "HR Business Partner",
+    "department": "HR",
+    "location": "Lahore",
+    "type": "Full-time",
+    "salaryRange": "200,000 - 280,000 PKR",
+    "status": "open",
+    "postedDate": "2026-05-01",
+    "deadline": "2026-06-30",
+    "description": "Support business units with HR strategy, employee relations, and talent management."
+  },
+  {
+    "id": "job003",
+    "title": "Digital Marketing Specialist",
+    "department": "Marketing",
+    "location": "Islamabad",
+    "type": "Full-time",
+    "salaryRange": "120,000 - 180,000 PKR",
+    "status": "open",
+    "postedDate": "2026-05-10",
+    "deadline": "2026-07-10",
+    "description": "Manage social media campaigns, SEO, and content marketing for Pakistani market."
+  },
+  {
+    "id": "job004",
+    "title": "Junior Data Analyst",
+    "department": "Analytics",
+    "location": "Karachi",
+    "type": "Full-time",
+    "salaryRange": "100,000 - 150,000 PKR",
+    "status": "closed",
+    "postedDate": "2026-02-01",
+    "deadline": "2026-04-01",
+    "description": "Analyze business data and create reports using SQL and Power BI."
+  },
+  {
+    "id": "job005",
+    "title": "Sales Manager",
+    "department": "Sales",
+    "location": "Lahore",
+    "type": "Full-time",
+    "salaryRange": "180,000 - 250,000 PKR",
+    "status": "open",
+    "postedDate": "2026-05-05",
+    "deadline": "2026-06-20",
+    "description": "Lead sales team and drive revenue growth across Punjab region."
+  }
+]

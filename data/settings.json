@@ -1,0 +1,52 @@
+{
+  "company": {
+    "name": "HRFlow Pakistan",
+    "tagline": "Human Resources Platform",
+    "address": "Plot 42, Block 7, Clifton, Karachi, Pakistan",
+    "phone": "+92 21 3587 4200",
+    "email": "hr@hrflow.pk",
+    "website": "www.hrflow.pk",
+    "currency": "PKR",
+    "timezone": "Asia/Karachi",
+    "workingDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+    "officeHours": "09:00 - 18:00 PKT"
+  },
+  "departments": [
+    "Engineering",
+    "HR",
+    "Product",
+    "Design",
+    "Sales",
+    "Marketing",
+    "Finance",
+    "Analytics",
+    "Executive"
+  ],
+  "designations": [
+    "Software Engineer",
+    "Team Lead",
+    "Backend Developer",
+    "DevOps Engineer",
+    "QA Engineer",
+    "Product Manager",
+    "UI/UX Designer",
+    "HR Manager",
+    "HR Specialist",
+    "Recruiter",
+    "Sales Executive",
+    "Marketing Manager",
+    "Finance Analyst",
+    "Data Analyst",
+    "CEO"
+  ],
+  "locations": ["Karachi", "Lahore", "Islamabad", "Rawalpindi", "Faisalabad"],
+  "holidays": [
+    { "id": "h1", "name": "Pakistan Day", "date": "2026-03-23", "type": "public" },
+    { "id": "h2", "name": "Labour Day", "date": "2026-05-01", "type": "public" },
+    { "id": "h3", "name": "Eid ul Adha", "date": "2026-06-17", "type": "public" },
+    { "id": "h4", "name": "Independence Day", "date": "2026-08-14", "type": "public" },
+    { "id": "h5", "name": "Defence Day", "date": "2026-09-06", "type": "public" },
+    { "id": "h6", "name": "Iqbal Day", "date": "2026-11-09", "type": "public" },
+    { "id": "h7", "name": "Quaid-e-Azam Day", "date": "2026-12-25", "type": "public" }
+  ]
+}

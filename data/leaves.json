@@ -1,0 +1,98 @@
+[
+  {
+    "id": "lv001",
+    "employeeId": "emp001",
+    "type": "annual",
+    "startDate": "2026-05-12",
+    "endDate": "2026-05-14",
+    "days": 3,
+    "reason": "Family wedding in Lahore",
+    "status": "pending",
+    "appliedOn": "2026-05-01",
+    "approvedBy": null
+  },
+  {
+    "id": "lv002",
+    "employeeId": "emp008",
+    "type": "sick",
+    "startDate": "2026-05-05",
+    "endDate": "2026-05-05",
+    "days": 1,
+    "reason": "Medical appointment",
+    "status": "approved",
+    "appliedOn": "2026-05-04",
+    "approvedBy": "emp003"
+  },
+  {
+    "id": "lv003",
+    "employeeId": "emp007",
+    "type": "annual",
+    "startDate": "2026-06-10",
+    "endDate": "2026-06-15",
+    "days": 4,
+    "reason": "Vacation to northern areas",
+    "status": "approved",
+    "appliedOn": "2026-04-20",
+    "approvedBy": "emp003"
+  },
+  {
+    "id": "lv004",
+    "employeeId": "emp006",
+    "type": "casual",
+    "startDate": "2026-05-20",
+    "endDate": "2026-05-20",
+    "days": 1,
+    "reason": "Personal work",
+    "status": "approved",
+    "appliedOn": "2026-05-18",
+    "approvedBy": null
+  },
+  {
+    "id": "lv005",
+    "employeeId": "emp009",
+    "type": "annual",
+    "startDate": "2026-07-01",
+    "endDate": "2026-07-10",
+    "days": 8,
+    "reason": "Umrah travel",
+    "status": "pending",
+    "appliedOn": "2026-05-15",
+    "approvedBy": null
+  },
+  {
+    "id": "lv006",
+    "employeeId": "emp003",
+    "type": "sick",
+    "startDate": "2026-04-28",
+    "endDate": "2026-04-29",
+    "days": 2,
+    "reason": "Flu and fever",
+    "status": "approved",
+    "appliedOn": "2026-04-27",
+    "approvedBy": "emp015"
+  },
+  {
+    "id": "lv007",
+    "employeeId": "emp012",
+    "type": "casual",
+    "startDate": "2026-05-08",
+    "endDate": "2026-05-08",
+    "days": 1,
+    "reason": "House shifting",
+    "status": "rejected",
+    "appliedOn": "2026-05-06",
+    "approvedBy": "emp014"
+  },
+  {
+    "id": "lv008",
+    "employeeId": "emp013",
+    "type": "annual",
+    "startDate": "2026-08-01",
+    "endDate": "2026-08-05",
+    "days": 3,
+    "reason": "Family trip",
+    "status": "approved",
+    "appliedOn": "2026-05-10",
+    "approvedBy": "emp004"
+  }
+]
