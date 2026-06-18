@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 import { supabaseAdmin } from "@/lib/supabase";
 import { generateTempPassword } from "@/lib/password-utils";
 import { sendCredentialsEmail } from "@/lib/mailer";
@@ -45,6 +46,7 @@ export async function POST(request: Request) {
     }
 
     const tempPassword = generateTempPassword();
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
 
     const { data: employee, error: employeeError } = await supabaseAdmin
       .from("employees")
@@ -60,7 +62,8 @@ export async function POST(request: Request) {
       .from("users")
       .insert({
         email: body.email,
-        password: tempPassword,
+        password: "[hashed]",
+        password_hash: passwordHash,
         role: "employee",
         is_temp_password: true,
         must_change_password: true,

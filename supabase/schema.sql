@@ -5,7 +5,8 @@
 create table if not exists users (
   id uuid default gen_random_uuid() primary key,
   email text unique not null,
-  password text not null,
+  password text,
+  password_hash text,
   role text check (role in ('super_admin', 'hr_manager', 'team_lead', 'employee')),
   is_temp_password boolean default false,
   must_change_password boolean default false,
@@ -135,6 +136,23 @@ create table if not exists ai_chat_history (
 
 create index if not exists ai_chat_history_user_id_idx on ai_chat_history(user_id);
 create index if not exists ai_chat_history_created_at_idx on ai_chat_history(created_at);
+
+-- Password reset OTPs
+create table if not exists password_reset_otp (
+  id uuid default gen_random_uuid() primary key,
+  email text not null,
+  otp text not null,
+  attempt_count int default 0,
+  next_allowed_at timestamp,
+  expires_at timestamp not null,
+  used boolean default false,
+  reset_token uuid,
+  reset_token_expires_at timestamp,
+  created_at timestamp default now()
+);
+
+create index if not exists password_reset_otp_email_idx on password_reset_otp(email);
+create index if not exists password_reset_otp_reset_token_idx on password_reset_otp(reset_token);
 
 -- Seed default users (skip if already exist)
 insert into users (email, password, role) values

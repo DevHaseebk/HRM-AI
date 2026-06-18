@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 import { supabaseAdmin } from "@/lib/supabase";
 import type { AuthUser } from "@/lib/types";
 
@@ -15,9 +16,8 @@ export async function POST(request: Request) {
 
     const { data: user, error } = await supabaseAdmin
       .from("users")
-      .select("id, email, role, password, must_change_password, is_temp_password")
+      .select("id, email, role, password, password_hash, must_change_password, is_temp_password")
       .eq("email", email)
-      .eq("password", password)
       .maybeSingle();
 
     if (error) {
@@ -25,6 +25,17 @@ export async function POST(request: Request) {
     }
 
     if (!user) {
+      return NextResponse.json(
+        { error: "Invalid email or password" },
+        { status: 400 }
+      );
+    }
+
+    const passwordMatches = user.password_hash
+      ? await bcrypt.compare(password, user.password_hash)
+      : user.password === password;
+
+    if (!passwordMatches) {
       return NextResponse.json(
         { error: "Invalid email or password" },
         { status: 400 }

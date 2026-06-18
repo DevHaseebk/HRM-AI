@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   ArrowRight,
   Briefcase,
@@ -208,9 +209,17 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-slate-700">
-                Password
-              </Label>
+              <div className="flex items-center justify-between gap-3">
+                <Label htmlFor="password" className="text-slate-700">
+                  Password
+                </Label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs font-medium text-violet-600 hover:text-violet-700"
+                >
+                  Forgot Password?
+                </Link>
+              </div>
               <div className="relative">
                 <Input
                   id="password"

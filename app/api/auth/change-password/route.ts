@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 import { supabaseAdmin } from "@/lib/supabase";
 
 export async function POST(request: Request) {
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
 
     const { data: user, error: fetchError } = await supabaseAdmin
       .from("users")
-      .select("id, password")
+      .select("id, password, password_hash")
       .eq("id", userId)
       .maybeSingle();
 
@@ -33,17 +34,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 400 });
     }
 
-    if (user.password !== currentPassword) {
+    const currentMatches = user.password_hash
+      ? await bcrypt.compare(currentPassword, user.password_hash)
+      : user.password === currentPassword;
+
+    if (!currentMatches) {
       return NextResponse.json(
         { error: "Current password is incorrect" },
         { status: 400 }
       );
     }
 
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
     const { error: updateError } = await supabaseAdmin
       .from("users")
       .update({
-        password: newPassword,
+        password: null,
+        password_hash: passwordHash,
         must_change_password: false,
         is_temp_password: false,
       })

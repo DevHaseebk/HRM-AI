@@ -194,3 +194,56 @@ export async function sendAttendanceReminderEmail(
     html,
   });
 }
+
+export async function sendPasswordResetOtpEmail(email: string, otp: string) {
+  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+    throw new Error("Gmail SMTP credentials are not configured");
+  }
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8" /></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+        <tr>
+          <td style="background:linear-gradient(135deg,#2563eb,#4f46e5);padding:32px;text-align:center;">
+            <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:bold;">HRFlow</h1>
+            <p style="margin:8px 0 0;color:#dbeafe;font-size:14px;">Password Reset Verification</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:32px;text-align:center;">
+            <h2 style="margin:0 0 12px;color:#0f172a;font-size:22px;">Your OTP for password reset:</h2>
+            <div style="display:inline-block;margin:18px 0 24px;padding:18px 28px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;color:#111827;font-size:34px;font-weight:800;letter-spacing:10px;font-family:Arial,sans-serif;">
+              ${otp}
+            </div>
+            <p style="margin:0 0 8px;color:#475569;font-size:15px;line-height:1.6;">
+              This OTP expires in <strong>10 minutes</strong>.
+            </p>
+            <p style="margin:0;color:#64748b;font-size:14px;line-height:1.6;">
+              If you did not request this, ignore this email.
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:20px 32px;background:#f8fafc;border-top:1px solid #e2e8f0;">
+            <p style="margin:0;color:#64748b;font-size:13px;text-align:center;">This is an automated message from HRFlow.</p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  const transporter = getTransporter();
+  await transporter.sendMail({
+    from: `"HRFlow" <${process.env.GMAIL_USER}>`,
+    to: email,
+    subject: "HRFlow - Password Reset OTP",
+    html,
+  });
+}
