@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { getCompanyScope } from "@/lib/company-scope";
 
 const VALID_STATUS = ["present", "absent", "late", "half_day", "wfh"];
 
@@ -15,6 +16,7 @@ export async function POST(request: Request) {
       date?: string;
       records?: BulkRecord[];
       marked_by?: string;
+      override_note?: string;
     };
 
     if (!body.date || !Array.isArray(body.records) || body.records.length === 0) {
@@ -34,7 +36,8 @@ export async function POST(request: Request) {
         check_in_time: r.check_in_time
           ? new Date(`${body.date}T${r.check_in_time}:00`).toISOString()
           : null,
-        marked_by: body.marked_by ?? "bulk",
+        marked_by: "hr_override",
+        override_note: body.override_note ?? "Manual HR override",
       }));
 
     if (cleaned.length === 0) {
@@ -45,6 +48,18 @@ export async function POST(request: Request) {
     }
 
     let savedCount = 0;
+    const scope = getCompanyScope(request);
+
+    if (scope.shouldScope) {
+      const requestedIds = cleaned.map((record) => record.employee_id);
+      const { data: allowedEmployees } = await supabaseAdmin
+        .from("employees")
+        .select("id")
+        .in("id", requestedIds)
+        .eq("company_id", scope.companyId);
+      const allowedIds = new Set((allowedEmployees ?? []).map((employee) => employee.id));
+      cleaned.splice(0, cleaned.length, ...cleaned.filter((record) => allowedIds.has(record.employee_id)));
+    }
 
     for (const record of cleaned) {
       const { data: existing } = await supabaseAdmin

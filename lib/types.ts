@@ -72,6 +72,11 @@ export interface AttendanceRecord {
   checkOut: string | null;
   status: "present" | "absent" | "late" | "on_leave";
   hoursWorked: number;
+  latitude?: number | null;
+  longitude?: number | null;
+  distanceFromOffice?: number | null;
+  markedBy?: string;
+  overrideNote?: string | null;
 }
 
 export interface LeaveRecord {

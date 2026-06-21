@@ -76,6 +76,11 @@ export function mapAttendance(row: Record<string, any>): AttendanceRecord {
     checkOut,
     status: statusMap[row.status] ?? "present",
     hoursWorked,
+    latitude: row.latitude == null ? null : Number(row.latitude),
+    longitude: row.longitude == null ? null : Number(row.longitude),
+    distanceFromOffice: row.distance_from_office == null ? null : Number(row.distance_from_office),
+    markedBy: row.marked_by ?? "self",
+    overrideNote: row.override_note ?? null,
   };
 }
 

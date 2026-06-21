@@ -60,6 +60,10 @@ create table if not exists attendance (
   check_out_time timestamp,
   marked_by text default 'self',
   qr_token text,
+  latitude numeric,
+  longitude numeric,
+  distance_from_office numeric,
+  override_note text,
   status text check (status in ('present', 'absent', 'late', 'half_day', 'wfh')),
   created_at timestamp default now()
 );

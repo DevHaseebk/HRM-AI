@@ -98,7 +98,12 @@ export default function BulkAttendancePage() {
       const res = await fetch("/api/attendance/bulk", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getClientAuthHeaders() },
-        body: JSON.stringify({ date, records, marked_by: user.role }),
+        body: JSON.stringify({
+          date,
+          records,
+          marked_by: "hr_override",
+          override_note: `Manual override by ${user.name}`,
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Bulk save failed");
@@ -165,6 +170,10 @@ export default function BulkAttendancePage() {
           </Button>
         </div>
       </div>
+
+      <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        Attendance saved here bypasses location restrictions and is recorded as a manual override by {user.name}.
+      </p>
 
       <Card>
         <CardHeader className="pb-3">

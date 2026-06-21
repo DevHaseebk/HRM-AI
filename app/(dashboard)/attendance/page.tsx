@@ -9,7 +9,9 @@ import {
   Filter,
   LogIn,
   LogOut,
+  MapPin,
   QrCode,
+  AlertTriangle,
   Users,
   XCircle,
 } from "lucide-react";
@@ -46,6 +48,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -160,6 +164,13 @@ function MyAttendanceTab({
 }) {
   const today = todayISO();
   const [acting, setActing] = useState(false);
+  const [gettingLocation, setGettingLocation] = useState(false);
+  const [locationDeniedOpen, setLocationDeniedOpen] = useState(false);
+  const [feedback, setFeedback] = useState<
+    | { type: "success"; message: string; checkInTime: string }
+    | { type: "range"; distance: number; radius: number }
+    | null
+  >(null);
 
   const myAttendance = useMemo(
     () => attendance.filter((a) => a.employeeId === user.employeeId),
@@ -174,24 +185,55 @@ function MyAttendanceTab({
   const absent = thisMonth.filter((a) => a.status === "absent").length;
   const onLeave = thisMonth.filter((a) => a.status === "on_leave").length;
 
-  const handleCheckIn = async () => {
+  const submitCheckIn = async (latitude: number, longitude: number) => {
     if (!user.employeeId) return;
-    setActing(true);
     try {
       const res = await fetch("/api/attendance/checkin", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...getClientAuthHeaders() },
-        body: JSON.stringify({ employee_id: user.employeeId }),
+        body: JSON.stringify({ employee_id: user.employeeId, latitude, longitude }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Check-in failed");
+      if (!res.ok) {
+        if (json.code === "OUTSIDE_OFFICE_RANGE") {
+          setFeedback({ type: "range", distance: Number(json.distance), radius: Number(json.radius) });
+          return;
+        }
+        throw new Error(json.error ?? "Check-in failed");
+      }
+      setFeedback({ type: "success", message: json.message ?? "Checked in", checkInTime: json.checkInTime });
       toast.success(json.message ?? "Checked in");
       await refetch();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Check-in failed");
     } finally {
       setActing(false);
+      setGettingLocation(false);
     }
+  };
+
+  const handleCheckIn = () => {
+    if (!user.employeeId || acting) return;
+    setFeedback(null);
+    setActing(true);
+    setGettingLocation(true);
+
+    if (!navigator.geolocation) {
+      setLocationDeniedOpen(true);
+      setActing(false);
+      setGettingLocation(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => void submitCheckIn(position.coords.latitude, position.coords.longitude),
+      () => {
+        setLocationDeniedOpen(true);
+        setActing(false);
+        setGettingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
   };
 
   const handleCheckOut = async () => {
@@ -243,7 +285,10 @@ function MyAttendanceTab({
             <div className="mt-2 flex flex-wrap gap-4 text-sm">
               <span>
                 <span className="text-muted-foreground">Check-in:</span>{" "}
-                <span className="font-medium">{todayRecord?.checkIn ?? "—"}</span>
+                <span className="inline-flex items-center gap-1.5 font-medium">
+                  {todayRecord?.checkIn ?? "—"}
+                  {todayRecord?.checkIn && <LocationPin record={todayRecord} />}
+                </span>
               </span>
               <span>
                 <span className="text-muted-foreground">Check-out:</span>{" "}
@@ -266,7 +311,7 @@ function MyAttendanceTab({
                 className="bg-emerald-600 text-white hover:bg-emerald-700"
               >
                 <LogIn className="mr-2 h-4 w-4" />
-                {acting ? "Checking in..." : "Check In"}
+                {gettingLocation ? "Getting your location..." : acting ? "Checking in..." : "Check In"}
               </Button>
             )}
             {checkInDone && !checkOutDone && (
@@ -289,6 +334,32 @@ function MyAttendanceTab({
         </CardContent>
       </Card>
 
+      {feedback?.type === "range" && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+          <div className="flex gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+            <div>
+              <p className="font-semibold">You are outside office range!</p>
+              <p className="mt-1 text-sm">Your location: {feedback.distance}m from office</p>
+              <p className="text-sm">Required: within {feedback.radius}m</p>
+              <p className="mt-2 text-sm">Please check in from the office.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {feedback?.type === "success" && (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-800">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5" />
+            <p className="font-semibold">{feedback.message}</p>
+          </div>
+          <p className="mt-1 text-sm">
+            Check-in time: {new Date(feedback.checkInTime).toLocaleTimeString("en-PK", { timeZone: "Asia/Karachi", hour: "2-digit", minute: "2-digit" })}
+          </p>
+        </div>
+      )}
+
       <div className="grid gap-3 sm:grid-cols-4">
         <StatCard title="Present" value={present} icon={CheckCircle2} accent="emerald" />
         <StatCard title="Late" value={late} icon={Clock} accent="amber" />
@@ -297,6 +368,21 @@ function MyAttendanceTab({
       </div>
 
       <MyCalendar attendance={myAttendance} />
+
+      <Dialog open={locationDeniedOpen} onOpenChange={setLocationDeniedOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Location access required</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Location access is required for check-in. Please enable location permissions in your browser settings.
+          </p>
+          <div className="space-y-2 rounded-lg bg-muted/50 p-4 text-sm">
+            <p><strong>Chrome:</strong> Click the lock icon in the address bar, open Site settings, and allow Location.</p>
+            <p><strong>Firefox:</strong> Click the permissions icon beside the address bar and allow Location.</p>
+            <p><strong>Safari:</strong> Open Settings for This Website and set Location to Allow.</p>
+          </div>
+          <DialogFooter><Button onClick={() => setLocationDeniedOpen(false)}>Got it</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -470,7 +556,7 @@ function TeamAttendanceTab({
                             <span className="text-xs text-muted-foreground">Not marked</span>
                           )}
                         </TableCell>
-                        <TableCell>{rec?.checkIn ?? "—"}</TableCell>
+                        <TableCell><span className="inline-flex items-center gap-1.5">{rec?.checkIn ?? "—"}{rec?.checkIn && <LocationPin record={rec} />}</span></TableCell>
                         <TableCell>{rec?.checkOut ?? "—"}</TableCell>
                       </TableRow>
                     );
@@ -615,7 +701,7 @@ function AllAttendanceTab({
                     <TableRow key={r.id}>
                       <TableCell className="font-medium">{getEmployeeName(employees, r.employeeId)}</TableCell>
                       <TableCell>{r.date}</TableCell>
-                      <TableCell>{r.checkIn ?? "—"}</TableCell>
+                      <TableCell><span className="inline-flex items-center gap-1.5">{r.checkIn ?? "—"}{r.checkIn && <LocationPin record={r} />}</span></TableCell>
                       <TableCell>{r.checkOut ?? "—"}</TableCell>
                       <TableCell>{r.hoursWorked}h</TableCell>
                       <TableCell><StatusBadge status={r.status} /></TableCell>
@@ -628,5 +714,23 @@ function AllAttendanceTab({
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function LocationPin({ record }: { record: AttendanceRecord }) {
+  const isOverride = record.markedBy === "hr_override";
+  const tooltip = record.distanceFromOffice == null
+    ? isOverride
+      ? record.overrideNote ?? "Manual HR override"
+      : "Location not recorded"
+    : `Checked in from: ${Math.round(record.distanceFromOffice)}m from office`;
+
+  return (
+    <Tooltip>
+      <TooltipTrigger className="inline-flex cursor-help">
+        <MapPin className={cn("h-3.5 w-3.5", isOverride ? "text-red-500" : "text-emerald-600")} />
+      </TooltipTrigger>
+      <TooltipContent>{tooltip}</TooltipContent>
+    </Tooltip>
   );
 }
