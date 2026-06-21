@@ -7,6 +7,7 @@ import { useAuthUser } from "@/components/shared/auth-provider";
 import { useHrmData, useHrmActions } from "@/components/shared/hrm-data-provider";
 import { useToast } from "@/components/shared/toast-provider";
 import { canManageEmployees, getTeamMemberIds } from "@/lib/auth";
+import { getClientAuthHeaders } from "@/lib/company-scope";
 import { todayISO } from "@/lib/hrm-api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -96,7 +97,7 @@ export default function BulkAttendancePage() {
 
       const res = await fetch("/api/attendance/bulk", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getClientAuthHeaders() },
         body: JSON.stringify({ date, records, marked_by: user.role }),
       });
       const json = await res.json();
@@ -113,7 +114,7 @@ export default function BulkAttendancePage() {
   const handleReminders = async () => {
     setSendingReminders(true);
     try {
-      const res = await fetch("/api/attendance/reminder", { method: "POST" });
+      const res = await fetch("/api/attendance/reminder", { method: "POST", headers: getClientAuthHeaders() });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Failed to send reminders");
       toast.success(json.message ?? `Reminders sent to ${json.count} employees`);

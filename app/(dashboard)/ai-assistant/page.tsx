@@ -17,6 +17,7 @@ import {
 import { PageWrapper } from "@/components/shared/page-wrapper";
 import { AiAssistantTabs } from "@/components/shared/ai-assistant-tabs";
 import { useAuthUser } from "@/components/shared/auth-provider";
+import { getClientAuthHeaders } from "@/lib/company-scope";
 import { useToast } from "@/components/shared/toast-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -202,7 +203,8 @@ export default function AIAssistantPage() {
     (async () => {
       try {
         const res = await fetch(
-          `/api/ai-chat/history?userId=${encodeURIComponent(user.id)}`
+          `/api/ai-chat/history?userId=${encodeURIComponent(user.id)}`,
+          { headers: getClientAuthHeaders() }
         );
         const json = await res.json();
         if (cancelled) return;
@@ -235,7 +237,7 @@ export default function AIAssistantPage() {
       try {
         await fetch("/api/ai-chat/history", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...getClientAuthHeaders() },
           body: JSON.stringify({ userId: user.id, role, message }),
         });
       } catch {
@@ -284,7 +286,7 @@ export default function AIAssistantPage() {
       try {
         const res = await fetch("/api/ai-chat", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...getClientAuthHeaders() },
           body: JSON.stringify({
             message: content,
             conversationHistory,

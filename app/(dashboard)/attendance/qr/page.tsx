@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { QrCode, RefreshCcw, ScanLine } from "lucide-react";
 import { PageWrapper } from "@/components/shared/page-wrapper";
 import { useAuthUser } from "@/components/shared/auth-provider";
+import { getClientAuthHeaders } from "@/lib/company-scope";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +32,7 @@ export default function MyQrPage() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`/api/attendance/qr/generate?employee_id=${user.employeeId}`);
+      const res = await fetch(`/api/attendance/qr/generate?employee_id=${user.employeeId}`, { headers: getClientAuthHeaders() });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Failed to load QR");
       setData(json as QrData);

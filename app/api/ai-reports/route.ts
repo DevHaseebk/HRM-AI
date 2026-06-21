@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { askGemini, GeminiError } from "@/lib/ai-gemini";
+import { getCompanyScope } from "@/lib/company-scope";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export async function POST(request: Request) {
+  const scope = getCompanyScope(request);
   let body: { month?: number; year?: number };
   try {
     body = await request.json();
@@ -25,6 +27,21 @@ export async function POST(request: Request) {
   const nextYear = month === 12 ? year + 1 : year;
   const monthEnd = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01`;
 
+  let companyEmployeesQuery = supabaseAdmin
+    .from("employees")
+    .select("id, full_name, department, status, designation, joining_date, created_at");
+  if (scope.shouldScope) companyEmployeesQuery = companyEmployeesQuery.eq("company_id", scope.companyId);
+  const companyEmployeesRes = await companyEmployeesQuery;
+  const companyEmployees = companyEmployeesRes.data ?? [];
+  const employeeIds = companyEmployees.map((employee) => employee.id);
+  const safeEmployeeIds = employeeIds.length ? employeeIds : ["00000000-0000-0000-0000-000000000000"];
+  let hiresQuery = supabaseAdmin
+    .from("applicants")
+    .select("stage, jobs!inner(company_id)")
+    .gte("created_at", monthStart)
+    .lt("created_at", monthEnd);
+  if (scope.shouldScope) hiresQuery = hiresQuery.eq("jobs.company_id", scope.companyId);
+
   // Fetch everything in parallel
   const [
     employeesRes,
@@ -36,41 +53,32 @@ export async function POST(request: Request) {
     hiresRes,
     reviewsRes,
   ] = await Promise.all([
-    supabaseAdmin.from("employees").select("id, full_name, department, status"),
-    supabaseAdmin
-      .from("employees")
-      .select("id, full_name, department, designation, joining_date")
-      .gte("joining_date", monthStart)
-      .lt("joining_date", monthEnd),
-    supabaseAdmin
-      .from("employees")
-      .select("id, full_name, department")
-      .eq("status", "inactive")
-      .gte("created_at", monthStart)
-      .lt("created_at", monthEnd),
+    Promise.resolve({ data: companyEmployees }),
+    Promise.resolve({ data: companyEmployees.filter((employee) => employee.joining_date >= monthStart && employee.joining_date < monthEnd) }),
+    Promise.resolve({ data: companyEmployees.filter((employee) => employee.status === "inactive" && employee.created_at >= monthStart && employee.created_at < monthEnd) }),
     supabaseAdmin
       .from("attendance")
       .select("status")
+      .in("employee_id", safeEmployeeIds)
       .gte("date", monthStart)
       .lt("date", monthEnd),
     supabaseAdmin
       .from("leaves")
       .select("leave_type, status, start_date, end_date")
+      .in("employee_id", safeEmployeeIds)
       .gte("start_date", monthStart)
       .lt("start_date", monthEnd),
     supabaseAdmin
       .from("payroll")
       .select("net_salary, basic_salary, deductions, bonuses, status")
+      .in("employee_id", safeEmployeeIds)
       .eq("month", month)
       .eq("year", year),
-    supabaseAdmin
-      .from("applicants")
-      .select("stage")
-      .gte("created_at", monthStart)
-      .lt("created_at", monthEnd),
+    hiresQuery,
     supabaseAdmin
       .from("performance")
       .select("rating, period")
+      .in("employee_id", safeEmployeeIds)
       .gte("created_at", monthStart)
       .lt("created_at", monthEnd),
   ]);

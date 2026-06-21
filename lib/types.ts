@@ -1,4 +1,4 @@
-export type Role = "super_admin" | "hr_manager" | "team_lead" | "employee";
+export type Role = "super_admin" | "company_admin" | "hr_manager" | "team_lead" | "employee";
 
 export interface AuthUser {
   id: string;
@@ -6,6 +6,7 @@ export interface AuthUser {
   role: Role;
   name: string;
   employeeId: string | null;
+  companyId?: string | null;
   mustChangePassword?: boolean;
   isTempPassword?: boolean;
 }
@@ -28,6 +29,39 @@ export interface Employee {
   managerId: string | null;
   location: string;
   gender: string;
+  companyId?: string | null;
+}
+
+export interface CompanyRecord {
+  id: string;
+  name: string;
+}
+
+export interface OfficePolicy {
+  id: string;
+  title: string;
+  description: string;
+  effectiveDate: string;
+}
+
+export interface OfficeProfile {
+  id?: string;
+  companyId: string | null;
+  name: string;
+  logoUrl: string;
+  email: string;
+  phone: string;
+  address: string;
+  checkInTime: string;
+  checkOutTime: string;
+  lateThresholdMinutes: number;
+  gracePeriodMinutes: number;
+  workDays: string[];
+  latitude: number | null;
+  longitude: number | null;
+  locationRadiusMeters: number;
+  locationSet: boolean;
+  policies: OfficePolicy[];
 }
 
 export interface AttendanceRecord {

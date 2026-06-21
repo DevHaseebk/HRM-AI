@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { askGemini, GeminiError } from "@/lib/ai-gemini";
+import { getCompanyScope } from "@/lib/company-scope";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -34,33 +35,42 @@ function monthsBetween(startISO: string | null, endISO: string) {
   );
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const scope = getCompanyScope(request);
   const todayISO = new Date().toISOString().slice(0, 10);
   const ninetyDaysAgo = new Date(Date.now() - 90 * 86_400_000)
     .toISOString()
     .slice(0, 10);
 
-  const [employeesRes, attendanceRes, leavesRes, payrollRes, perfRes] =
+  let employeeQuery = supabaseAdmin
+    .from("employees")
+    .select("id, full_name, department, designation, joining_date, salary")
+    .eq("status", "active");
+  if (scope.shouldScope) employeeQuery = employeeQuery.eq("company_id", scope.companyId);
+  const employeesRes = await employeeQuery;
+  const companyEmployeeIds = (employeesRes.data ?? []).map((employee) => employee.id);
+
+  const [attendanceRes, leavesRes, payrollRes, perfRes] =
     await Promise.all([
-      supabaseAdmin
-        .from("employees")
-        .select("id, full_name, department, designation, joining_date, salary")
-        .eq("status", "active"),
       supabaseAdmin
         .from("attendance")
         .select("employee_id, date, status")
-        .gte("date", ninetyDaysAgo),
+        .gte("date", ninetyDaysAgo)
+        .in("employee_id", scope.shouldScope ? companyEmployeeIds : companyEmployeeIds.length ? companyEmployeeIds : ["00000000-0000-0000-0000-000000000000"]),
       supabaseAdmin
         .from("leaves")
         .select("employee_id, status, start_date")
-        .gte("start_date", ninetyDaysAgo),
+        .gte("start_date", ninetyDaysAgo)
+        .in("employee_id", scope.shouldScope ? companyEmployeeIds : companyEmployeeIds.length ? companyEmployeeIds : ["00000000-0000-0000-0000-000000000000"]),
       supabaseAdmin
         .from("payroll")
         .select("employee_id, basic_salary, month, year, created_at")
+        .in("employee_id", scope.shouldScope ? companyEmployeeIds : companyEmployeeIds.length ? companyEmployeeIds : ["00000000-0000-0000-0000-000000000000"])
         .order("created_at", { ascending: false }),
       supabaseAdmin
         .from("performance")
-        .select("employee_id, rating, created_at"),
+        .select("employee_id, rating, created_at")
+        .in("employee_id", scope.shouldScope ? companyEmployeeIds : companyEmployeeIds.length ? companyEmployeeIds : ["00000000-0000-0000-0000-000000000000"]),
     ]);
 
   const employees = employeesRes.data ?? [];

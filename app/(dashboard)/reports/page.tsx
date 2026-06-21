@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/components/shared/toast-provider";
 import { useApiCall } from "@/hooks/useApiCall";
 import { cn } from "@/lib/utils";
+import { getClientAuthHeaders } from "@/lib/company-scope";
 
 interface ReportMetrics {
   period: string;
@@ -88,7 +89,7 @@ export default function ReportsPage() {
   const reportCall = useApiCall(async () => {
     const res = await fetch("/api/ai-reports", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getClientAuthHeaders() },
       body: JSON.stringify({ month, year }),
     });
     const json = await res.json();
@@ -103,7 +104,7 @@ export default function ReportsPage() {
   });
 
   const churnCall = useApiCall(async () => {
-    const res = await fetch("/api/ai-churn");
+    const res = await fetch("/api/ai-churn", { headers: getClientAuthHeaders() });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error ?? "Churn analysis failed");
     setChurnData(json);

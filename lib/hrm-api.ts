@@ -9,6 +9,7 @@ import type {
   PayrollRecord,
   PerformanceReview,
 } from "./types";
+import { getClientAuthHeaders } from "./company-scope";
 import {
   announcementToDb,
   applicantToDb,
@@ -36,7 +37,7 @@ async function parseError(res: Response) {
 }
 
 async function apiGet<T>(url: string, mapper: (row: Record<string, unknown>) => T): Promise<T[]> {
-  const res = await fetch(url);
+  const res = await fetch(url, { headers: getClientAuthHeaders() });
   if (!res.ok) await parseError(res);
   const data = await res.json();
   return (data as Record<string, unknown>[]).map(mapper);
@@ -80,7 +81,15 @@ export async function createRecord(
 ): Promise<unknown> {
   let body: Record<string, unknown> = data as Record<string, unknown>;
 
-  if (resource === "employees") body = employeeToDb(data as unknown as Employee);
+  if (resource === "employees") {
+    const employeeInput = data as Record<string, unknown>;
+    body = {
+      ...employeeToDb(data as unknown as Employee),
+      role: employeeInput.role,
+      company_id: employeeInput.company_id,
+      new_company_name: employeeInput.new_company_name,
+    };
+  }
   if (resource === "attendance") body = attendanceToDb(data as unknown as AttendanceRecord);
   if (resource === "leaves") body = leaveToDb(data as unknown as LeaveRecord);
   if (resource === "payroll") body = payrollToDb(data as unknown as PayrollRecord);
@@ -91,7 +100,7 @@ export async function createRecord(
 
   const res = await fetch(`/api/${resource}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getClientAuthHeaders() },
     body: JSON.stringify(body),
   });
   if (!res.ok) await parseError(res);
@@ -116,7 +125,7 @@ export async function updateRecordApi<T>(
   const method = resource === "leaves" || resource === "applicants" ? "PUT" : "PUT";
   const res = await fetch(`/api/${resource}/${id}`, {
     method,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...getClientAuthHeaders() },
     body: JSON.stringify(
       resource === "leaves"
         ? { status: (data as unknown as LeaveRecord).status, approved_by: (data as unknown as LeaveRecord).approvedBy }
@@ -131,7 +140,10 @@ export async function deleteRecordApi(
   resource: "employees" | "announcements",
   id: string
 ): Promise<void> {
-  const res = await fetch(`/api/${resource}/${id}`, { method: "DELETE" });
+  const res = await fetch(`/api/${resource}/${id}`, {
+    method: "DELETE",
+    headers: getClientAuthHeaders(),
+  });
   if (!res.ok) await parseError(res);
 }
 

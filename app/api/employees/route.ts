@@ -3,13 +3,21 @@ import bcrypt from "bcryptjs";
 import { supabaseAdmin } from "@/lib/supabase";
 import { generateTempPassword } from "@/lib/password-utils";
 import { sendCredentialsEmail } from "@/lib/mailer";
+import { getCompanyScope } from "@/lib/company-scope";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const { data, error } = await supabaseAdmin
+    const scope = getCompanyScope(request);
+    let query = supabaseAdmin
       .from("employees")
       .select("*")
       .order("created_at", { ascending: false });
+
+    if (scope.shouldScope) {
+      query = query.eq("company_id", scope.companyId);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
@@ -24,6 +32,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    const scope = getCompanyScope(request);
 
     if (!body.full_name || !body.email) {
       return NextResponse.json(
@@ -48,9 +57,39 @@ export async function POST(request: Request) {
     const tempPassword = generateTempPassword();
     const passwordHash = await bcrypt.hash(tempPassword, 10);
 
+    let companyId = body.company_id ?? (scope.shouldScope ? scope.companyId : null);
+    const requestedRole = body.role === "company_admin" && scope.role === "super_admin"
+      ? "company_admin"
+      : "employee";
+
+    if (scope.role === "super_admin" && body.new_company_name && !companyId) {
+      const { data: company, error: companyError } = await supabaseAdmin
+        .from("companies")
+        .insert({ name: String(body.new_company_name).trim() })
+        .select("id")
+        .single();
+
+      if (companyError) {
+        return NextResponse.json({ error: companyError.message }, { status: 500 });
+      }
+
+      companyId = company.id;
+    }
+
+    if (requestedRole === "company_admin" && !companyId) {
+      return NextResponse.json(
+        { error: "company_id or new_company_name is required for company admin" },
+        { status: 400 }
+      );
+    }
+
+    const employeePayload = companyId ? { ...body, company_id: companyId } : body;
+    delete employeePayload.role;
+    delete employeePayload.new_company_name;
+
     const { data: employee, error: employeeError } = await supabaseAdmin
       .from("employees")
-      .insert(body)
+      .insert(employeePayload)
       .select()
       .single();
 
@@ -64,7 +103,8 @@ export async function POST(request: Request) {
         email: body.email,
         password: "[hashed]",
         password_hash: passwordHash,
-        role: "employee",
+        role: requestedRole,
+        company_id: companyId,
         is_temp_password: true,
         must_change_password: true,
       })

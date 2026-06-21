@@ -47,6 +47,7 @@ import {
 import { useToast } from "@/components/shared/toast-provider";
 import { useApiCall } from "@/hooks/useApiCall";
 import { useHrmData } from "@/components/shared/hrm-data-provider";
+import { getClientAuthHeaders } from "@/lib/company-scope";
 import type { Employee } from "@/lib/types";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -380,7 +381,7 @@ export default function DocumentsPage() {
     if (selected.id === "interview_kit") {
       const res = await fetch("/api/ai-interview", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getClientAuthHeaders() },
         body: JSON.stringify(formData),
       });
       const json = await res.json();
@@ -393,7 +394,7 @@ export default function DocumentsPage() {
 
     const res = await fetch("/api/ai-documents", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getClientAuthHeaders() },
       body: JSON.stringify({
         documentType: selected.id,
         formData,
@@ -820,4 +821,3 @@ function formatKitAsText(kit: InterviewKit): string {
   }
   return out;
 }
-

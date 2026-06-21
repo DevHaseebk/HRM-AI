@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { askGemini, GeminiError } from "@/lib/ai-gemini";
+import { getCompanyScope } from "@/lib/company-scope";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -44,18 +45,26 @@ function monthKey(dateStr: string) {
   return dateStr.slice(0, 7);
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const scope = getCompanyScope(request);
+  let employeeQuery = supabaseAdmin
+    .from("employees")
+    .select("id, full_name, department, designation, email, joining_date")
+    .eq("status", "active");
+  if (scope.shouldScope) employeeQuery = employeeQuery.eq("company_id", scope.companyId);
+
+  const { data: employees } = await employeeQuery;
+  const employeeIds = (employees ?? []).map((employee) => employee.id);
+  let attendanceQuery = supabaseAdmin
+    .from("attendance")
+    .select("employee_id, date, status")
+    .gte("date", ninetyDaysAgoISO());
+  if (scope.shouldScope) attendanceQuery = attendanceQuery.in("employee_id", employeeIds);
+
   // 1. Pull 90 days of attendance + employees
-  const [{ data: employees }, { data: attendance }] = await Promise.all([
-    supabaseAdmin
-      .from("employees")
-      .select("id, full_name, department, designation, email, joining_date")
-      .eq("status", "active"),
-    supabaseAdmin
-      .from("attendance")
-      .select("employee_id, date, status")
-      .gte("date", ninetyDaysAgoISO()),
-  ]);
+  const { data: attendance } = employeeIds.length || !scope.shouldScope
+    ? await attendanceQuery
+    : { data: [] };
 
   if (!employees || !attendance) {
     return NextResponse.json(

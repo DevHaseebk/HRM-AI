@@ -21,6 +21,7 @@ import { useHrmData, useHrmActions } from "@/components/shared/hrm-data-provider
 import { useAuthUser } from "@/components/shared/auth-provider";
 import { useToast } from "@/components/shared/toast-provider";
 import { canManageEmployees, getTeamMemberIds } from "@/lib/auth";
+import { getClientAuthHeaders } from "@/lib/company-scope";
 import { getEmployeeName } from "@/lib/helpers";
 import { todayISO } from "@/lib/hrm-api";
 import type { AttendanceRecord } from "@/lib/types";
@@ -179,7 +180,7 @@ function MyAttendanceTab({
     try {
       const res = await fetch("/api/attendance/checkin", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getClientAuthHeaders() },
         body: JSON.stringify({ employee_id: user.employeeId }),
       });
       const json = await res.json();
@@ -199,7 +200,7 @@ function MyAttendanceTab({
     try {
       const res = await fetch("/api/attendance/checkout", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getClientAuthHeaders() },
         body: JSON.stringify({ employee_id: user.employeeId }),
       });
       const json = await res.json();

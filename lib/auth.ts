@@ -5,23 +5,32 @@ const COOKIE_NAME = "hrm_auth";
 
 export const ROLE_LABELS: Record<Role, string> = {
   super_admin: "Super Admin",
+  company_admin: "Company Admin",
   hr_manager: "HR Manager",
   team_lead: "Team Lead",
   employee: "Employee",
 };
 
+export const ROLE_RANK: Record<Role, number> = {
+  super_admin: 5,
+  company_admin: 4,
+  hr_manager: 3,
+  team_lead: 2,
+  employee: 1,
+};
+
 export const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: "LayoutDashboard", roles: ["super_admin", "hr_manager", "team_lead", "employee"] as Role[] },
-  { href: "/employees", label: "Employees", icon: "Users", roles: ["super_admin", "hr_manager"] as Role[] },
-  { href: "/attendance", label: "Attendance", icon: "Clock", roles: ["super_admin", "hr_manager", "team_lead", "employee"] as Role[] },
-  { href: "/leaves", label: "Leaves", icon: "CalendarDays", roles: ["super_admin", "hr_manager", "team_lead", "employee"] as Role[] },
-  { href: "/payroll", label: "Payroll", icon: "Wallet", roles: ["super_admin", "hr_manager"] as Role[] },
-  { href: "/recruitment", label: "Recruitment", icon: "Briefcase", roles: ["super_admin", "hr_manager"] as Role[] },
-  { href: "/performance", label: "Performance", icon: "TrendingUp", roles: ["super_admin", "hr_manager", "team_lead", "employee"] as Role[] },
-  { href: "/announcements", label: "Announcements", icon: "Megaphone", roles: ["super_admin", "hr_manager", "team_lead", "employee"] as Role[] },
-  { href: "/ai-assistant", label: "AI Assistant", icon: "Bot", roles: ["super_admin", "hr_manager", "team_lead", "employee"] as Role[] },
-  { href: "/reports", label: "Reports", icon: "BarChart3", roles: ["super_admin", "hr_manager"] as Role[] },
-  { href: "/settings", label: "Settings", icon: "Settings", roles: ["super_admin"] as Role[] },
+  { href: "/dashboard", label: "Dashboard", icon: "LayoutDashboard", roles: ["super_admin", "company_admin", "hr_manager", "team_lead", "employee"] as Role[] },
+  { href: "/employees", label: "Employees", icon: "Users", roles: ["super_admin", "company_admin", "hr_manager"] as Role[] },
+  { href: "/attendance", label: "Attendance", icon: "Clock", roles: ["super_admin", "company_admin", "hr_manager", "team_lead", "employee"] as Role[] },
+  { href: "/leaves", label: "Leaves", icon: "CalendarDays", roles: ["super_admin", "company_admin", "hr_manager", "team_lead", "employee"] as Role[] },
+  { href: "/payroll", label: "Payroll", icon: "Wallet", roles: ["super_admin", "company_admin", "hr_manager"] as Role[] },
+  { href: "/recruitment", label: "Recruitment", icon: "Briefcase", roles: ["super_admin", "company_admin", "hr_manager"] as Role[] },
+  { href: "/performance", label: "Performance", icon: "TrendingUp", roles: ["super_admin", "company_admin", "hr_manager", "team_lead", "employee"] as Role[] },
+  { href: "/announcements", label: "Announcements", icon: "Megaphone", roles: ["super_admin", "company_admin", "hr_manager", "team_lead", "employee"] as Role[] },
+  { href: "/ai-assistant", label: "AI Assistant", icon: "Bot", roles: ["super_admin", "company_admin", "hr_manager", "team_lead", "employee"] as Role[] },
+  { href: "/reports", label: "Reports", icon: "BarChart3", roles: ["super_admin", "company_admin", "hr_manager"] as Role[] },
+  { href: "/settings", label: "Settings", icon: "Settings", roles: ["super_admin", "company_admin", "hr_manager"] as Role[] },
 ];
 
 function setAuthCookie(token: string) {
@@ -87,31 +96,35 @@ export function getNavItemsForRole(role: Role) {
 }
 
 export function canManageEmployees(role: Role): boolean {
-  return role === "super_admin" || role === "hr_manager";
+  return role === "super_admin" || role === "company_admin" || role === "hr_manager";
 }
 
 export function canApproveLeaves(role: Role): boolean {
-  return role === "super_admin" || role === "hr_manager" || role === "team_lead";
+  return role === "super_admin" || role === "company_admin" || role === "hr_manager" || role === "team_lead";
 }
 
 export function canViewAllPayroll(role: Role): boolean {
-  return role === "super_admin" || role === "hr_manager";
+  return role === "super_admin" || role === "company_admin" || role === "hr_manager";
 }
 
 export function canManageRecruitment(role: Role): boolean {
-  return role === "super_admin" || role === "hr_manager";
+  return role === "super_admin" || role === "company_admin" || role === "hr_manager";
 }
 
 export function canManageAnnouncements(role: Role): boolean {
-  return role === "super_admin" || role === "hr_manager";
+  return role === "super_admin" || role === "company_admin" || role === "hr_manager";
 }
 
 export function canManagePerformance(role: Role): boolean {
-  return role === "super_admin" || role === "hr_manager" || role === "team_lead";
+  return role === "super_admin" || role === "company_admin" || role === "hr_manager" || role === "team_lead";
 }
 
 export function canManageSettings(role: Role): boolean {
-  return role === "super_admin";
+  return role === "super_admin" || role === "company_admin" || role === "hr_manager";
+}
+
+export function canEditGlobalSettings(role: Role): boolean {
+  return role === "super_admin" || role === "company_admin";
 }
 
 export function getTeamMemberIds(

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { getCompanyScope } from "@/lib/company-scope";
 
 const VALID_STAGES = [
   "applied",
@@ -16,6 +17,7 @@ export async function PUT(
 ) {
   try {
     const body = await request.json();
+    const scope = getCompanyScope(request);
 
     if (!body.stage || !VALID_STAGES.includes(body.stage)) {
       return NextResponse.json(
@@ -27,6 +29,19 @@ export async function PUT(
     const updates: Record<string, unknown> = { stage: body.stage };
     if (body.notes !== undefined) {
       updates.notes = body.notes;
+    }
+
+    if (scope.shouldScope) {
+      const { data: existing } = await supabaseAdmin
+        .from("applicants")
+        .select("id, jobs!inner(company_id)")
+        .eq("id", params.id)
+        .eq("jobs.company_id", scope.companyId)
+        .maybeSingle();
+
+      if (!existing) {
+        return NextResponse.json({ error: "Applicant not found in your company" }, { status: 403 });
+      }
     }
 
     const { data, error } = await supabaseAdmin

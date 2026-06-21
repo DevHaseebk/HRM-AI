@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Download,
   Eye,
@@ -16,11 +16,12 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { useHrmData, useHrmActions } from "@/components/shared/hrm-data-provider";
 import { useAuthUser } from "@/components/shared/auth-provider";
 import { canManageEmployees } from "@/lib/auth";
+import { getClientAuthHeaders } from "@/lib/company-scope";
 import { formatPKR } from "@/lib/helpers";
 import { createRecord, deleteRecordApi, exportToCsv, updateRecordApi } from "@/lib/hrm-api";
 import { useToast } from "@/components/shared/toast-provider";
 import { useApiCall } from "@/hooks/useApiCall";
-import type { Employee } from "@/lib/types";
+import type { CompanyRecord, Employee, Role } from "@/lib/types";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -90,6 +91,18 @@ export default function EmployeesPage() {
   const [editEmployee, setEditEmployee] = useState<(Employee | (Omit<Employee, "id"> & { id?: string })) | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [accountRole, setAccountRole] = useState<Role>("employee");
+  const [companies, setCompanies] = useState<CompanyRecord[]>([]);
+  const [companyId, setCompanyId] = useState("");
+  const [newCompanyName, setNewCompanyName] = useState("");
+
+  useEffect(() => {
+    if (user.role !== "super_admin") return;
+    fetch("/api/companies", { headers: getClientAuthHeaders() })
+      .then((res) => res.ok ? res.json() : [])
+      .then((data) => setCompanies(Array.isArray(data) ? data : []))
+      .catch(() => setCompanies([]));
+  }, [user.role]);
 
   const filtered = useMemo(() => {
     return employees.filter((e) => {
@@ -131,7 +144,12 @@ export default function EmployeesPage() {
         await updateRecordApi<Employee>("employees", editEmployee.id, editEmployee);
         toast.success("Employee updated successfully");
       } else {
-        const result = (await createRecord("employees", editEmployee)) as { message?: string };
+        const result = (await createRecord("employees", {
+          ...editEmployee,
+          role: accountRole,
+          company_id: companyId || undefined,
+          new_company_name: newCompanyName.trim() || undefined,
+        })) as { message?: string };
         toast.success(result.message ?? "Employee created and credentials sent to email");
       }
       await refetch();
@@ -186,6 +204,9 @@ export default function EmployeesPage() {
               size="sm"
               onClick={() => {
                 setEditEmployee(emptyEmployee());
+                setAccountRole("employee");
+                setCompanyId("");
+                setNewCompanyName("");
                 setDialogOpen(true);
               }}
             >
@@ -346,6 +367,32 @@ export default function EmployeesPage() {
           </DialogHeader>
           {editEmployee && (
             <div className="grid gap-3 sm:grid-cols-2">
+              {user.role === "super_admin" && !("id" in editEmployee && editEmployee.id) && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label>Account Role</Label>
+                    <Select value={accountRole} onValueChange={(value) => value && setAccountRole(value as Role)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="employee">Employee</SelectItem>
+                        <SelectItem value="company_admin">Company Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Company</Label>
+                    <Select value={companyId} onValueChange={(value) => value && setCompanyId(value)}>
+                      <SelectTrigger><SelectValue placeholder="Select company" /></SelectTrigger>
+                      <SelectContent>{companies.map((company) => <SelectItem key={company.id} value={company.id}>{company.name}</SelectItem>)}</SelectContent>
+                    </Select>
+                  </div>
+                  {accountRole === "company_admin" && !companyId && (
+                    <div className="sm:col-span-2">
+                      <Field label="Or Create New Company" value={newCompanyName} onChange={setNewCompanyName} />
+                    </div>
+                  )}
+                </>
+              )}
               <Field label="Full Name" value={editEmployee.name} onChange={(v) => setEditEmployee({ ...editEmployee, name: v })} />
               <Field label="Email" value={editEmployee.email} onChange={(v) => setEditEmployee({ ...editEmployee, email: v })} />
               <Field label="Phone" value={editEmployee.phone} onChange={(v) => setEditEmployee({ ...editEmployee, phone: v })} />

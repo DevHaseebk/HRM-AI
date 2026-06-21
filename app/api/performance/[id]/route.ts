@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { getCompanyScope } from "@/lib/company-scope";
 
 export async function PUT(
   request: Request,
@@ -7,6 +8,20 @@ export async function PUT(
 ) {
   try {
     const body = await request.json();
+    const scope = getCompanyScope(request);
+
+    if (scope.shouldScope) {
+      const { data: existing } = await supabaseAdmin
+        .from("performance")
+        .select("id, employees!inner(company_id)")
+        .eq("id", params.id)
+        .eq("employees.company_id", scope.companyId)
+        .maybeSingle();
+
+      if (!existing) {
+        return NextResponse.json({ error: "Performance record not found in your company" }, { status: 403 });
+      }
+    }
 
     const { data, error } = await supabaseAdmin
       .from("performance")

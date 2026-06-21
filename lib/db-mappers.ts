@@ -32,6 +32,7 @@ export function mapEmployee(row: Record<string, any>): Employee {
     status: row.status === "inactive" ? "inactive" : "active",
     managerId: null,
     location: "Karachi",
+    companyId: row.company_id ?? null,
     gender: "—",
   };
 }
@@ -47,6 +48,7 @@ export function employeeToDb(emp: Partial<Employee>) {
     joining_date: emp.joinDate,
     salary: emp.salary,
     status: emp.status ?? "active",
+    company_id: emp.companyId,
   };
 }
 

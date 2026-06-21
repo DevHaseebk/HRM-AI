@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/components/shared/toast-provider";
 import { useApiCall } from "@/hooks/useApiCall";
 import { cn } from "@/lib/utils";
+import { getClientAuthHeaders } from "@/lib/company-scope";
 
 type Severity = "high" | "medium" | "low";
 
@@ -106,7 +107,7 @@ export default function AnomaliesPage() {
   const [search, setSearch] = useState("");
 
   const runCall = useApiCall(async () => {
-    const res = await fetch("/api/ai-anomalies");
+    const res = await fetch("/api/ai-anomalies", { headers: getClientAuthHeaders() });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error ?? "Analysis failed");
     setData(json as AnomalyResponse);

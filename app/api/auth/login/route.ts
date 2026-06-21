@@ -16,7 +16,7 @@ export async function POST(request: Request) {
 
     const { data: user, error } = await supabaseAdmin
       .from("users")
-      .select("id, email, role, password, password_hash, must_change_password, is_temp_password")
+      .select("id, email, role, password, password_hash, company_id, must_change_password, is_temp_password")
       .eq("email", email)
       .maybeSingle();
 
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
 
     const { data: employee } = await supabaseAdmin
       .from("employees")
-      .select("id, full_name")
+      .select("id, full_name, company_id")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -54,6 +54,7 @@ export async function POST(request: Request) {
       role: user.role,
       name: employee?.full_name ?? user.email.split("@")[0],
       employeeId: employee?.id ?? null,
+      companyId: user.company_id ?? employee?.company_id ?? null,
       mustChangePassword: user.must_change_password ?? false,
       isTempPassword: user.is_temp_password ?? false,
     };

@@ -7,7 +7,8 @@ create table if not exists users (
   email text unique not null,
   password text,
   password_hash text,
-  role text check (role in ('super_admin', 'hr_manager', 'team_lead', 'employee')),
+  role text check (role in ('super_admin', 'company_admin', 'hr_manager', 'team_lead', 'employee')),
+  company_id uuid,
   is_temp_password boolean default false,
   must_change_password boolean default false,
   created_at timestamp default now()
@@ -26,8 +27,19 @@ create table if not exists employees (
   joining_date date,
   salary numeric,
   status text default 'active',
+  company_id uuid,
   created_at timestamp default now()
 );
+
+-- Companies table
+create table if not exists companies (
+  id uuid default gen_random_uuid() primary key,
+  name text not null,
+  created_at timestamp default now()
+);
+
+alter table users add constraint users_company_id_fkey foreign key (company_id) references companies(id);
+alter table employees add constraint employees_company_id_fkey foreign key (company_id) references companies(id);
 
 -- Departments table
 create table if not exists departments (
@@ -87,6 +99,7 @@ create table if not exists jobs (
   description text,
   requirements text,
   status text default 'open' check (status in ('open', 'closed', 'on_hold')),
+  company_id uuid references companies(id),
   created_at timestamp default now()
 );
 
@@ -122,6 +135,7 @@ create table if not exists announcements (
   content text,
   created_by uuid references employees(id),
   department text default 'all',
+  company_id uuid references companies(id),
   created_at timestamp default now()
 );
 
@@ -153,6 +167,28 @@ create table if not exists password_reset_otp (
 
 create index if not exists password_reset_otp_email_idx on password_reset_otp(email);
 create index if not exists password_reset_otp_reset_token_idx on password_reset_otp(reset_token);
+
+-- Office profile settings
+create table if not exists office_profiles (
+  id uuid default gen_random_uuid() primary key,
+  company_id uuid references companies(id),
+  name text not null,
+  logo_url text,
+  email text,
+  phone text,
+  address text,
+  check_in_time time default '09:00',
+  check_out_time time default '18:00',
+  late_threshold_minutes int default 15,
+  grace_period_minutes int default 0,
+  work_days text[] default array['Monday','Tuesday','Wednesday','Thursday','Friday'],
+  latitude numeric,
+  longitude numeric,
+  location_radius_meters int default 1000,
+  location_set boolean default false,
+  policies jsonb default '[]',
+  created_at timestamp default now()
+);
 
 -- Seed default users (skip if already exist)
 insert into users (email, password, role) values
