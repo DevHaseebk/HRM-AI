@@ -14,6 +14,7 @@ export function getClientAuthHeaders(): HeadersInit {
 
   return {
     "x-user-role": user.role,
+    "x-user-id": user.id,
     ...(user.companyId ? { "x-company-id": user.companyId } : {}),
   };
 }

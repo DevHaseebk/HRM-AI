@@ -11,6 +11,8 @@
 
 This matrix describes frontend behavior first. API routes often lack independent role checks; see the Notes column.
 
+Saved values in `role_permissions` now override the built-in defaults. Super Admin can edit Company Admin and lower roles; Company Admin can edit HR Manager, Team Lead, and Employee permissions. Super Admin permissions remain fixed.
+
 | Feature | Super Admin | Company Admin | HR Manager | Team Lead | Employee | Notes |
 |---|---|---|---|---|---|---|
 | Dashboard | Admin dashboard, all available data | Admin dashboard, company data | Admin dashboard | Team dashboard | Employee dashboard | Admin charts include synthetic fallback data |

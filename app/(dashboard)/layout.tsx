@@ -9,6 +9,7 @@ import { AuthProvider } from "@/components/shared/auth-provider";
 import { NavigationProvider } from "@/components/shared/navigation-provider";
 import { HrmDataProvider } from "@/components/shared/hrm-data-provider";
 import { PageTransition } from "@/components/shared/page-transition";
+import { PermissionRouteGuard, PermissionsProvider } from "@/components/shared/permissions-provider";
 
 export default function DashboardLayout({
   children,
@@ -23,19 +24,21 @@ export default function DashboardLayout({
       {isForcedChangePassword ? (
         children
       ) : (
-        <HrmDataProvider>
-          <NavigationProvider>
-            <TooltipProvider>
-              <SidebarProvider>
-                <AppSidebar />
-                <SidebarInset className="flex min-h-svh min-w-0 flex-1 flex-col bg-background">
-                  <AppHeader />
-                  <PageTransition>{children}</PageTransition>
-                </SidebarInset>
-              </SidebarProvider>
-            </TooltipProvider>
-          </NavigationProvider>
-        </HrmDataProvider>
+        <PermissionsProvider>
+          <HrmDataProvider>
+            <NavigationProvider>
+              <TooltipProvider>
+                <SidebarProvider>
+                  <AppSidebar />
+                  <SidebarInset className="flex min-h-svh min-w-0 flex-1 flex-col bg-background">
+                    <AppHeader />
+                    <PageTransition><PermissionRouteGuard>{children}</PermissionRouteGuard></PageTransition>
+                  </SidebarInset>
+                </SidebarProvider>
+              </TooltipProvider>
+            </NavigationProvider>
+          </HrmDataProvider>
+        </PermissionsProvider>
       )}
     </AuthProvider>
   );

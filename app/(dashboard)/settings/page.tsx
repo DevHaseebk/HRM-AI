@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Building2, Calendar, Plus, X } from "lucide-react";
+import Link from "next/link";
+import { Building2, Calendar, Plus, ShieldCheck, X } from "lucide-react";
 import { PageWrapper } from "@/components/shared/page-wrapper";
 import { OfficeProfileTab } from "@/components/settings/office-profile-tab";
 import { useHrmData, useHrmActions } from "@/components/shared/hrm-data-provider";
@@ -9,9 +10,10 @@ import { useAuthUser } from "@/components/shared/auth-provider";
 import { canEditGlobalSettings, canManageSettings } from "@/lib/auth";
 import { updateSettings } from "@/lib/hrm-api";
 import { useToast } from "@/components/shared/toast-provider";
+import { usePermissions } from "@/components/shared/permissions-provider";
 import type { CompanySettings } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,6 +25,7 @@ export default function SettingsPage() {
   const { settings } = useHrmData();
   const { refetch } = useHrmActions();
   const toast = useToast();
+  const { can } = usePermissions();
   const canManage = canManageSettings(user.role);
   const canEditGlobal = canEditGlobalSettings(user.role);
   const [company, setCompany] = useState(settings.company);
@@ -64,7 +67,7 @@ export default function SettingsPage() {
 
   return (
     <PageWrapper>
-      <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-semibold">Settings</h2><p className="text-sm text-muted-foreground">Company configuration, departments, and office profile</p></div>{canEditGlobal && <Button onClick={handleSave} disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>}</div>
+      <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="text-lg font-semibold">Settings</h2><p className="text-sm text-muted-foreground">Company configuration, departments, and office profile</p></div><div className="flex flex-wrap gap-2">{(user.role === "super_admin" || user.role === "company_admin") && <Link href="/settings/roles" className={buttonVariants({ variant: "outline" })}><ShieldCheck className="mr-1.5 h-4 w-4" /> Roles &amp; Permissions</Link>}{canEditGlobal && can("settings", "edit") && <Button onClick={handleSave} disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>}</div></div>
 
       <Tabs defaultValue={canEditGlobal ? "company" : "office-profile"}>
         <TabsList className="flex h-auto flex-wrap justify-start">

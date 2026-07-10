@@ -19,6 +19,7 @@ import { AiAssistantTabs } from "@/components/shared/ai-assistant-tabs";
 import { useAuthUser } from "@/components/shared/auth-provider";
 import { getClientAuthHeaders } from "@/lib/company-scope";
 import { useToast } from "@/components/shared/toast-provider";
+import { usePermissions } from "@/components/shared/permissions-provider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -188,6 +189,9 @@ function DateSeparator({ label }: { label: string }) {
 export default function AIAssistantPage() {
   const user = useAuthUser();
   const toast = useToast();
+  const { can } = usePermissions();
+  const canCreate = can("ai_assistant", "create");
+  const canDelete = can("ai_assistant", "delete");
   const [messages, setMessages] = useState<Message[]>([WELCOME]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [input, setInput] = useState("");
@@ -250,7 +254,7 @@ export default function AIAssistantPage() {
   const sendMessage = useCallback(
     async (text: string) => {
       const content = text.trim();
-      if (!content || busy) return;
+      if (!canCreate || !content || busy) return;
 
       setInput("");
       setNoKey(false);
@@ -347,7 +351,7 @@ export default function AIAssistantPage() {
         inputRef.current?.focus();
       }
     },
-    [messages, busy, user.role, user.name, persist]
+    [messages, busy, user.role, user.name, persist, canCreate]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -415,7 +419,7 @@ export default function AIAssistantPage() {
                     AI is thinking…
                   </Badge>
                 )}
-                <Button
+                {canDelete && <Button
                   variant="ghost"
                   size="sm"
                   onClick={clearChat}
@@ -423,7 +427,7 @@ export default function AIAssistantPage() {
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                   Clear History
-                </Button>
+                </Button>}
               </div>
             </div>
 
@@ -502,13 +506,13 @@ export default function AIAssistantPage() {
                   onKeyDown={handleKeyDown}
                   rows={2}
                   className="min-h-0 resize-none text-sm"
-                  disabled={busy}
+                  disabled={busy || !canCreate}
                 />
                 <div className="flex flex-col gap-1.5">
                   <Button
                     size="sm"
                     onClick={() => sendMessage(input)}
-                    disabled={busy || !input.trim()}
+                    disabled={busy || !canCreate || !input.trim()}
                     loading={busy}
                     className="h-full px-3"
                   >
@@ -548,7 +552,7 @@ export default function AIAssistantPage() {
                   <button
                     key={qp.label}
                     onClick={() => sendMessage(qp.prompt)}
-                    disabled={busy}
+                    disabled={busy || !canCreate}
                     className="w-full rounded-lg border bg-background px-3 py-2 text-left text-xs transition-all hover:scale-[1.01] hover:bg-muted hover:shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <ChevronDown className="mr-1.5 inline h-3 w-3 -rotate-90 text-muted-foreground" />

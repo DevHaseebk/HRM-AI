@@ -239,4 +239,4 @@ flowchart TD
 
 ## No Other Runtime Roles Confirmed
 
-No additional role is present in the TypeScript `Role` union or the current Supabase role constraint. The repository does not contain a runtime `role_permissions` model/API despite the role hierarchy constant.
+No additional role is present in the TypeScript `Role` union or the current Supabase role constraint. Runtime module permissions are stored in `role_permissions` and managed by Super Admin or Company Admin from `/settings/roles`.

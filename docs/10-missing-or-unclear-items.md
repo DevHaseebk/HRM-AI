@@ -19,7 +19,7 @@ This file records items that could not be confirmed from the repository or that 
 2. Attendance reminder selection is global rather than clearly company-scoped.
 3. QR attendance routes do not clearly verify company access.
 4. AI chat data queries are not consistently company-scoped.
-5. AI document and interview-kit generation are not company-specific.
+5. AI document templates are company-scoped, but direct AI document/interview generation does not add company-specific policy context to prompts.
 6. A Super Admin can list all companies, but no separate Super Admin company-management page was found.
 7. The database does not clearly enforce exactly one office profile per company.
 
@@ -29,8 +29,8 @@ This file records items that could not be confirmed from the repository or that 
 2. Company Admin may not see bulk attendance/reminder submenu items or AI Anomalies despite broad module access in the main role map.
 3. The leave page approval permission includes Company Admin, but Team/All tab conditions omit it.
 4. AI salary visibility allows Super Admin and HR Manager but unexpectedly omits Company Admin.
-5. A database-backed, actively enforced permission-management system was not found. `role_permissions` may exist in a manually modified database, but it is not defined or consumed by the checked repository.
-6. Most permissions are UI visibility checks, not authoritative backend guards.
+5. `role_permissions` now controls navigation and frontend action visibility, but most business APIs still do not independently enforce those stored permissions.
+6. Company Admin changes use a global role/module table; per-company permission variants are not represented by a `company_id` column.
 
 ## 4. Employee and Team Model Gaps
 
@@ -134,7 +134,7 @@ This file records items that could not be confirmed from the repository or that 
 ## 15. Database and Schema Uncertainty
 
 1. The live Supabase database may contain manually executed SQL not represented in repository migrations.
-2. `role_permissions`, `activity_logs`, and `notifications` were discussed outside the repository but are not defined or used by the scanned code.
+2. `activity_logs` and `notifications` were discussed outside the repository but are not defined or used by the scanned code.
 3. Referential delete behavior and cascading rules should be verified against the live database.
 4. Unique constraints expected by upsert flows should be verified for attendance, payroll, office profiles, and role permissions.
 5. No schema-generated TypeScript database types were found, so row shapes can drift from code models.

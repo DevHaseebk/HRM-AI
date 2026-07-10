@@ -13,6 +13,7 @@ import {
   TrendingDown,
 } from "lucide-react";
 import { PageWrapper } from "@/components/shared/page-wrapper";
+import { usePermissions } from "@/components/shared/permissions-provider";
 import { AiAssistantTabs } from "@/components/shared/ai-assistant-tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -101,6 +102,8 @@ function downloadCSV(rows: Anomaly[]) {
 }
 
 export default function AnomaliesPage() {
+  const { can } = usePermissions();
+  const canAnalyse = can("ai_assistant", "edit");
   const toast = useToast();
   const [data, setData] = useState<AnomalyResponse | null>(null);
   const [filter, setFilter] = useState<Severity | "all">("all");
@@ -152,14 +155,14 @@ export default function AnomaliesPage() {
                   Export
                 </Button>
               )}
-              <Button
+              {canAnalyse && <Button
                 onClick={() => runCall.execute()}
                 loading={runCall.loading}
                 className="gap-1.5"
               >
                 {!runCall.loading && <RefreshCw className="h-3.5 w-3.5" />}
                 {data ? "Re-run Analysis" : "Run Analysis"}
-              </Button>
+              </Button>}
             </div>
           </CardHeader>
 

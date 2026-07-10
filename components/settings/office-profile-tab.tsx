@@ -5,6 +5,7 @@ import { Building2, MapPin, Plus, Trash2, Upload } from "lucide-react";
 import { getClientAuthHeaders } from "@/lib/company-scope";
 import type { OfficePolicy, OfficeProfile } from "@/lib/types";
 import { useToast } from "@/components/shared/toast-provider";
+import { usePermissions } from "@/components/shared/permissions-provider";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,10 @@ const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
 
 export function OfficeProfileTab() {
   const toast = useToast();
+  const { can } = usePermissions();
+  const canCreate = can("settings", "create");
+  const canEdit = can("settings", "edit");
+  const canDelete = can("settings", "delete");
   const [profile, setProfile] = useState<OfficeProfile>(DEFAULT_PROFILE);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -121,7 +126,7 @@ export function OfficeProfileTab() {
         <Field label="Email" value={profile.email} onChange={(email) => setProfile({ ...profile, email })} />
         <Field label="Phone" value={profile.phone} onChange={(phone) => setProfile({ ...profile, phone })} />
         <div className="space-y-1.5 sm:col-span-2"><Label>Address</Label><Textarea value={profile.address} onChange={(e) => setProfile({ ...profile, address: e.target.value })} /></div>
-        <SaveButton saving={saving} onClick={save} label="Save Company Info" />
+        {canEdit && <SaveButton saving={saving} onClick={save} label="Save Company Info" />}
       </Section>
 
       <Section title="Work Hours & Policies" description="Attendance timing and working days">
@@ -130,17 +135,17 @@ export function OfficeProfileTab() {
         <Field label="Late Arrival Threshold (minutes)" type="number" value={String(profile.lateThresholdMinutes)} onChange={(v) => setProfile({ ...profile, lateThresholdMinutes: Number(v) })} />
         <Field label="Grace Period (minutes)" type="number" value={String(profile.gracePeriodMinutes)} onChange={(v) => setProfile({ ...profile, gracePeriodMinutes: Number(v) })} />
         <div className="space-y-2 sm:col-span-2"><Label>Work Days</Label><div className="flex flex-wrap gap-2">{DAYS.map((day) => <label key={day} className="flex items-center gap-2 rounded-md border px-3 py-2 text-sm"><Checkbox checked={profile.workDays.includes(day)} onCheckedChange={(checked) => setProfile((p) => ({ ...p, workDays: checked ? [...p.workDays, day] : p.workDays.filter((d) => d !== day) }))} />{day.slice(0, 3)}</label>)}</div></div>
-        <SaveButton saving={saving} onClick={save} label="Save Work Policy" />
+        {canEdit && <SaveButton saving={saving} onClick={save} label="Save Work Policy" />}
       </Section>
 
       <Section title="Office Location" description="Used for attendance location checks">
         <div className="flex min-h-32 items-center justify-center rounded-lg border bg-muted/40 text-center sm:col-span-2"><div><MapPin className="mx-auto mb-2 h-6 w-6 text-muted-foreground" />{profile.locationSet ? <p className="text-sm font-medium">Location: {profile.latitude}, {profile.longitude}</p> : <p className="text-sm text-muted-foreground">Office location is not set</p>}</div></div>
         <Field label="Radius (meters)" type="number" value={String(profile.locationRadiusMeters)} onChange={(v) => setProfile({ ...profile, locationRadiusMeters: Number(v) })} />
-        <div className="flex flex-wrap items-end gap-2 sm:col-span-2"><Button variant="outline" onClick={updateLocation}>Update Location</Button><Button variant="outline" onClick={() => setProfile({ ...profile, latitude: null, longitude: null, locationSet: false })}>Clear Location</Button><Button onClick={save} disabled={saving}>{saving ? "Saving..." : "Save Location"}</Button></div>
+        {canEdit && <div className="flex flex-wrap items-end gap-2 sm:col-span-2"><Button variant="outline" onClick={updateLocation}>Update Location</Button><Button variant="outline" onClick={() => setProfile({ ...profile, latitude: null, longitude: null, locationSet: false })}>Clear Location</Button><Button onClick={save} disabled={saving}>{saving ? "Saving..." : "Save Location"}</Button></div>}
         <p className="text-xs text-muted-foreground sm:col-span-2">Office location is auto-detected on first employee check-in if not set.</p>
       </Section>
 
-      <Card><CardHeader className="flex flex-row items-center justify-between gap-3"><div><CardTitle className="text-base">Custom Policies</CardTitle><CardDescription>Company-specific workplace policies</CardDescription></div><Button size="sm" onClick={() => setPolicyOpen(true)}><Plus className="mr-1.5 h-4 w-4" /> Add Policy</Button></CardHeader><CardContent className="space-y-3">{profile.policies.length === 0 ? <p className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">No policies added yet.</p> : profile.policies.map((policy) => <div key={policy.id} className="rounded-lg border p-4"><div className="flex items-start justify-between"><div><p className="font-medium">{policy.title}</p><p className="text-xs text-muted-foreground">Effective {policy.effectiveDate}</p></div><Button variant="ghost" size="icon-sm" onClick={() => setDeletePolicyId(policy.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button></div><p className="mt-2 text-sm text-muted-foreground">{policy.description}</p></div>)}<Button onClick={save} disabled={saving}>{saving ? "Saving..." : "Save Policies"}</Button></CardContent></Card>
+      <Card><CardHeader className="flex flex-row items-center justify-between gap-3"><div><CardTitle className="text-base">Custom Policies</CardTitle><CardDescription>Company-specific workplace policies</CardDescription></div>{canCreate && <Button size="sm" onClick={() => setPolicyOpen(true)}><Plus className="mr-1.5 h-4 w-4" /> Add Policy</Button>}</CardHeader><CardContent className="space-y-3">{profile.policies.length === 0 ? <p className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">No policies added yet.</p> : profile.policies.map((policy) => <div key={policy.id} className="rounded-lg border p-4"><div className="flex items-start justify-between"><div><p className="font-medium">{policy.title}</p><p className="text-xs text-muted-foreground">Effective {policy.effectiveDate}</p></div>{canDelete && <Button variant="ghost" size="icon-sm" onClick={() => setDeletePolicyId(policy.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>}</div><p className="mt-2 text-sm text-muted-foreground">{policy.description}</p></div>)}{canEdit && <Button onClick={save} disabled={saving}>{saving ? "Saving..." : "Save Policies"}</Button>}</CardContent></Card>
 
       <Dialog open={policyOpen} onOpenChange={setPolicyOpen}><DialogContent><DialogHeader><DialogTitle>Add Policy</DialogTitle></DialogHeader><div className="space-y-3"><Field label="Title" value={policyForm.title} onChange={(title) => setPolicyForm({ ...policyForm, title })} /><div className="space-y-1.5"><Label>Description</Label><Textarea value={policyForm.description} onChange={(e) => setPolicyForm({ ...policyForm, description: e.target.value })} /></div><Field label="Effective Date" type="date" value={policyForm.effectiveDate} onChange={(effectiveDate) => setPolicyForm({ ...policyForm, effectiveDate })} /></div><DialogFooter><Button variant="outline" onClick={() => setPolicyOpen(false)}>Cancel</Button><Button onClick={addPolicy} disabled={!policyForm.title.trim()}>Add Policy</Button></DialogFooter></DialogContent></Dialog>
 

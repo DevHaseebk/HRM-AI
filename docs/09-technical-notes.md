@@ -126,8 +126,10 @@ Some routes apply no company scope. Some scoped routes skip filtering when a com
 | `ai_chat_history` | Stored user/model AI chat messages |
 | `password_reset_otp` | OTP, resend attempts, reset token, and expiration state |
 | `office_profiles` | Company contact details, work rules, location, radius, and policies |
+| `role_permissions` | Per-role View/Create/Edit/Delete flags for each application module |
+| `document_templates` | Company-scoped reusable AI document content and variable placeholders |
 
-The repository SQL does not define persistent `role_permissions`, `activity_logs`, or `notifications` tables, even though such tables may have been manually created in a particular Supabase project.
+The repository SQL does not define persistent `activity_logs` or `notifications` tables, even though such tables may have been manually created in a particular Supabase project.
 
 ## 7. Important Data Flows
 

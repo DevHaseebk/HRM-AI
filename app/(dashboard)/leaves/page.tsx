@@ -7,7 +7,8 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { useHrmData, useHrmActions } from "@/components/shared/hrm-data-provider";
 import { useAuthUser } from "@/components/shared/auth-provider";
-import { canApproveLeaves, getTeamMemberIds } from "@/lib/auth";
+import { getTeamMemberIds } from "@/lib/auth";
+import { usePermissions } from "@/components/shared/permissions-provider";
 import { getEmployeeName } from "@/lib/helpers";
 import { createRecord, updateRecordApi, daysBetween } from "@/lib/hrm-api";
 import { useToast } from "@/components/shared/toast-provider";
@@ -48,7 +49,9 @@ export default function LeavesPage() {
   const { employees, leaves } = useHrmData();
   const { refetch } = useHrmActions();
   const toast = useToast();
-  const canApprove = canApproveLeaves(user.role);
+  const { can } = usePermissions();
+  const canApply = can("leaves", "create");
+  const canApprove = can("leaves", "edit");
 
   const [applyOpen, setApplyOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -125,7 +128,7 @@ export default function LeavesPage() {
             Annual · Sick · Casual leave types
           </p>
         </div>
-        {user.employeeId && (
+        {user.employeeId && canApply && (
           <Button size="sm" onClick={() => setApplyOpen(true)}>
             <Plus className="mr-1.5 h-4 w-4" /> Apply Leave
           </Button>
@@ -135,10 +138,10 @@ export default function LeavesPage() {
       <Tabs defaultValue={defaultTab}>
         <TabsList>
           <TabsTrigger value="my">My Leaves ({myLeaves.length})</TabsTrigger>
-          {(user.role === "team_lead" || user.role === "super_admin" || user.role === "hr_manager") && (
+          {canApprove && (
             <TabsTrigger value="team">Team Leaves ({teamLeaves.length})</TabsTrigger>
           )}
-          {(user.role === "super_admin" || user.role === "hr_manager") && (
+          {canApprove && user.role !== "team_lead" && (
             <TabsTrigger value="all">All Leaves ({leaves.length})</TabsTrigger>
           )}
         </TabsList>

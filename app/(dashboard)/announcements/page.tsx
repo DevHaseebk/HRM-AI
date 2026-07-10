@@ -7,7 +7,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { useHrmData, useHrmActions } from "@/components/shared/hrm-data-provider";
 import { useAuthUser } from "@/components/shared/auth-provider";
-import { canManageAnnouncements } from "@/lib/auth";
+import { usePermissions } from "@/components/shared/permissions-provider";
 import { getEmployeeName } from "@/lib/helpers";
 import { createRecord, deleteRecordApi } from "@/lib/hrm-api";
 import { useToast } from "@/components/shared/toast-provider";
@@ -55,7 +55,9 @@ export default function AnnouncementsPage() {
   const { employees, announcements, settings } = useHrmData();
   const { refetch } = useHrmActions();
   const toast = useToast();
-  const canManage = canManageAnnouncements(user.role);
+  const { can } = usePermissions();
+  const canCreate = can("announcements", "create");
+  const canDelete = can("announcements", "delete");
 
   const [createOpen, setCreateOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -129,7 +131,7 @@ export default function AnnouncementsPage() {
               <SelectItem value="low">Low</SelectItem>
             </SelectContent>
           </Select>
-          {canManage && (
+          {canCreate && (
             <Button size="sm" onClick={() => setCreateOpen(true)}>
               <Plus className="mr-1.5 h-4 w-4" /> Create
             </Button>
@@ -160,7 +162,7 @@ export default function AnnouncementsPage() {
           icon={Megaphone}
           title="No announcements"
           description="No announcements match your filter."
-          action={canManage ? { label: "Create announcement", onClick: () => setCreateOpen(true) } : undefined}
+          action={canCreate ? { label: "Create announcement", onClick: () => setCreateOpen(true) } : undefined}
         />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -185,7 +187,7 @@ export default function AnnouncementsPage() {
                       </p>
                     </div>
                   </div>
-                  {canManage && (
+                  {canDelete && (
                     <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(ann.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>

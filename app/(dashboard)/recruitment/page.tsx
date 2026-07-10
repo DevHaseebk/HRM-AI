@@ -6,8 +6,7 @@ import { PageWrapper } from "@/components/shared/page-wrapper";
 import { EmptyState } from "@/components/shared/empty-state";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { useHrmData, useHrmActions } from "@/components/shared/hrm-data-provider";
-import { useAuthUser } from "@/components/shared/auth-provider";
-import { canManageRecruitment } from "@/lib/auth";
+import { usePermissions } from "@/components/shared/permissions-provider";
 import { createRecord, updateRecordApi } from "@/lib/hrm-api";
 import { useToast } from "@/components/shared/toast-provider";
 import type { Applicant } from "@/lib/types";
@@ -45,11 +44,12 @@ const PIPELINE: { key: Applicant["status"]; label: string; color: string }[] = [
 ];
 
 export default function RecruitmentPage() {
-  const user = useAuthUser();
   const { jobs, applicants, settings } = useHrmData();
   const { refetch } = useHrmActions();
   const toast = useToast();
-  const canManage = canManageRecruitment(user.role);
+  const { can } = usePermissions();
+  const canCreate = can("recruitment", "create");
+  const canEdit = can("recruitment", "edit");
 
   const [jobOpen, setJobOpen] = useState(false);
   const [selectedJob, setSelectedJob] = useState<string>("all");
@@ -105,7 +105,7 @@ export default function RecruitmentPage() {
             {jobs.filter((j) => j.status === "open").length} open positions · {applicants.length} applicants
           </p>
         </div>
-        {canManage && (
+        {canCreate && (
           <Button size="sm" onClick={() => setJobOpen(true)}>
             <Plus className="mr-1.5 h-4 w-4" /> Add Job Posting
           </Button>
@@ -159,7 +159,7 @@ export default function RecruitmentPage() {
                               </div>
                             </div>
                           </div>
-                          {canManage && col.key !== "hired" && col.key !== "rejected" && (
+                          {canEdit && col.key !== "hired" && col.key !== "rejected" && (
                             <div className="mt-2 flex flex-wrap gap-1">
                               {PIPELINE.filter((p) => p.key !== col.key).slice(0, 3).map((next) => (
                                 <button
@@ -185,7 +185,7 @@ export default function RecruitmentPage() {
 
         <TabsContent value="jobs" className="mt-4">
           {jobs.length === 0 ? (
-            <EmptyState icon={Briefcase} title="No job postings" description="Create your first job posting." action={canManage ? { label: "Add Job", onClick: () => setJobOpen(true) } : undefined} />
+            <EmptyState icon={Briefcase} title="No job postings" description="Create your first job posting." action={canCreate ? { label: "Add Job", onClick: () => setJobOpen(true) } : undefined} />
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {jobs.map((job) => (

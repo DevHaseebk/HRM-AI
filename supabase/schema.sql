@@ -194,6 +194,36 @@ create table if not exists office_profiles (
   created_at timestamp default now()
 );
 
+-- Configurable module permissions per role
+create table if not exists role_permissions (
+  id uuid default gen_random_uuid() primary key,
+  role text not null check (role in ('super_admin', 'company_admin', 'hr_manager', 'team_lead', 'employee')),
+  module text not null,
+  can_view boolean default false,
+  can_create boolean default false,
+  can_edit boolean default false,
+  can_delete boolean default false
+);
+
+create unique index if not exists role_permissions_role_module_idx
+  on role_permissions(role, module);
+
+-- Reusable AI document templates
+create table if not exists document_templates (
+  id uuid default gen_random_uuid() primary key,
+  type text not null,
+  name text not null,
+  content text not null,
+  variables jsonb default '[]',
+  company_id uuid references companies(id),
+  created_by uuid references users(id),
+  created_at timestamp default now(),
+  updated_at timestamp default now()
+);
+
+create index if not exists document_templates_company_type_idx
+  on document_templates(company_id, type);
+
 -- Seed default users (skip if already exist)
 insert into users (email, password, role) values
 ('super@hr.com', 'pass123', 'super_admin'),

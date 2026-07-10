@@ -21,6 +21,7 @@ import { useToast } from "@/components/shared/toast-provider";
 import { useApiCall } from "@/hooks/useApiCall";
 import { cn } from "@/lib/utils";
 import { getClientAuthHeaders } from "@/lib/company-scope";
+import { usePermissions } from "@/components/shared/permissions-provider";
 
 interface ReportMetrics {
   period: string;
@@ -73,6 +74,8 @@ function initials(name: string) {
 
 export default function ReportsPage() {
   const toast = useToast();
+  const { can } = usePermissions();
+  const canGenerate = can("reports", "create");
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
@@ -167,12 +170,12 @@ export default function ReportsPage() {
                 </Select>
               </div>
               <div className="flex flex-1 gap-2 sm:justify-end">
-                <Button
+                {canGenerate && <Button
                   onClick={() => reportCall.execute()}
                   loading={reportCall.loading}
                 >
                   {!reportCall.loading && "Generate Report"}
-                </Button>
+                </Button>}
                 {report && (
                   <Button
                     variant="outline"
@@ -261,13 +264,13 @@ export default function ReportsPage() {
                 AI-predicted attrition risk per active employee.
               </p>
             </div>
-            <Button
+            {canGenerate && <Button
               onClick={() => churnCall.execute()}
               loading={churnCall.loading}
               variant={churnData ? "outline" : "default"}
             >
               {!churnCall.loading && (churnData ? "Re-run" : "Analyse Churn Risk")}
-            </Button>
+            </Button>}
           </CardHeader>
 
           {churnCall.loading && !churnData && (

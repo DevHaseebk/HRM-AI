@@ -20,6 +20,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { TeamWeekAttendanceChart } from "@/components/dashboard/charts/team-week-attendance-chart";
 import { useHrmData } from "@/components/shared/hrm-data-provider";
 import { useAuthUser } from "@/components/shared/auth-provider";
+import { usePermissions } from "@/components/shared/permissions-provider";
 import {
   getTeamMembers,
   getTeamPerformanceSummary,
@@ -29,6 +30,8 @@ import { cn } from "@/lib/utils";
 
 export function TeamLeadDashboard() {
   const user = useAuthUser();
+  const { can } = usePermissions();
+  const canEditLeaves = can("leaves", "edit");
   const { employees, attendance, leaves, performanceReviews } = useHrmData();
 
   if (!user.employeeId) {
@@ -277,14 +280,14 @@ export function TeamLeadDashboard() {
                       {leave.startDate} → {leave.endDate} · {leave.reason}
                     </p>
                   </div>
-                  <div className="flex gap-1.5">
+                  {canEditLeaves && <div className="flex gap-1.5">
                     <Button size="sm" variant="outline" className="h-7 px-2 text-xs">
                       Reject
                     </Button>
                     <Button size="sm" className="h-7 px-2 text-xs">
                       Approve
                     </Button>
-                  </div>
+                  </div>}
                 </div>
               );
             })

@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Award,
@@ -16,6 +18,7 @@ import {
   MessageCircleQuestion,
   Printer,
   RefreshCw,
+  Save,
   ScrollText,
   Shield,
   ShieldAlert,
@@ -27,10 +30,11 @@ import {
 import { PageWrapper } from "@/components/shared/page-wrapper";
 import { AiAssistantTabs } from "@/components/shared/ai-assistant-tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -47,8 +51,16 @@ import {
 import { useToast } from "@/components/shared/toast-provider";
 import { useApiCall } from "@/hooks/useApiCall";
 import { useHrmData } from "@/components/shared/hrm-data-provider";
+import { usePermissions } from "@/components/shared/permissions-provider";
 import { getClientAuthHeaders } from "@/lib/company-scope";
 import type { Employee } from "@/lib/types";
+import {
+  extractTemplate,
+  renderTemplate,
+  variableLabel,
+  variableToField,
+  type DocumentTemplate,
+} from "@/lib/document-templates";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -363,6 +375,10 @@ interface InterviewKit {
 
 export default function DocumentsPage() {
   const toast = useToast();
+  const searchParams = useSearchParams();
+  const { can } = usePermissions();
+  const canGenerate = can("ai_assistant", "create");
+  const canEdit = can("ai_assistant", "edit");
   const hrm = useHrmData();
   const employees = hrm.employees ?? [];
 
@@ -373,8 +389,13 @@ export default function DocumentsPage() {
   const [editedDoc, setEditedDoc] = useState("");
   const [interviewKit, setInterviewKit] = useState<InterviewKit | null>(null);
   const [showKit, setShowKit] = useState(false);
+  const [activeTemplate, setActiveTemplate] = useState<DocumentTemplate | null>(null);
+  const [templateLoading, setTemplateLoading] = useState(false);
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [generatedByAI, setGeneratedByAI] = useState(false);
+  const [suggestedVariables, setSuggestedVariables] = useState<string[]>([]);
 
-  const generate = useApiCall(async () => {
+  const generate = useApiCall(async (forceRegenerate = false) => {
     if (!selected) return;
 
     // Interview kit uses a different endpoint
@@ -398,17 +419,32 @@ export default function DocumentsPage() {
       body: JSON.stringify({
         documentType: selected.id,
         formData,
+        forceRegenerate,
+        ...(forceRegenerate && activeTemplate
+          ? { templateContent: activeTemplate.content, variables: activeTemplate.variables }
+          : {}),
       }),
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error ?? "Generation failed");
-    setDocument(json.document);
+    if (json.source === "template" && json.template) {
+      const template = json.template as DocumentTemplate;
+      setActiveTemplate(template);
+      setDocument(renderTemplate(template.content, formData));
+      setGeneratedByAI(false);
+    } else {
+      setDocument(forceRegenerate && activeTemplate
+        ? renderTemplate(json.document, formData)
+        : json.document);
+      setGeneratedByAI(true);
+    }
+    setSuggestedVariables(Array.isArray(json.suggestedVariables) ? json.suggestedVariables : []);
     setEditedDoc(json.document);
     setEditing(false);
-    toast.success("Document generated");
+    toast.success(forceRegenerate ? "Document regenerated with AI" : "Document generated");
   });
 
-  const pickDoc = (doc: DocType) => {
+  const pickDoc = useCallback(async (doc: DocType, templateId?: string | null) => {
     setSelected(doc);
     const defaults: Record<string, any> = {};
     for (const f of doc.fields) {
@@ -417,7 +453,47 @@ export default function DocumentsPage() {
     setFormData(defaults);
     setDocument(null);
     setEditing(false);
-  };
+    setActiveTemplate(null);
+    setGeneratedByAI(false);
+    setSuggestedVariables([]);
+
+    if (doc.id === "interview_kit") return;
+    setTemplateLoading(true);
+    try {
+      const url = templateId
+        ? `/api/document-templates/${encodeURIComponent(templateId)}`
+        : `/api/document-templates?type=${encodeURIComponent(doc.id)}`;
+      const response = await fetch(url, { headers: getClientAuthHeaders() });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Failed to load template");
+      const template = templateId
+        ? data.template as DocumentTemplate | undefined
+        : data.templates?.[0] as DocumentTemplate | undefined;
+      if (template) {
+        const variableValues: Record<string, any> = {};
+        template.variables.forEach((variable) => {
+          const fieldName = variableToField(variable);
+          const field = doc.fields.find((item) => item.name === fieldName);
+          variableValues[fieldName] = field?.defaultValue ?? "";
+        });
+        setFormData(variableValues);
+        setActiveTemplate(template);
+        setDocument(renderTemplate(template.content, variableValues));
+        setEditedDoc(template.content);
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to load template");
+    } finally {
+      setTemplateLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    const type = searchParams.get("type");
+    if (!type) return;
+    const doc = DOC_TYPES.find((item) => item.id === type);
+    if (doc) void pickDoc(doc, searchParams.get("template"));
+  }, [pickDoc, searchParams]);
 
   const pickEmployee = (emp: Employee) => {
     if (!selected?.prefillFromEmployee) return;
@@ -429,7 +505,59 @@ export default function DocumentsPage() {
   };
 
   const updateField = (name: string, value: any) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) => {
+      const next = { ...prev, [name]: value };
+      if (activeTemplate && !generatedByAI) {
+        setDocument(renderTemplate(activeTemplate.content, next));
+      }
+      return next;
+    });
+  };
+
+  const visibleFields = useMemo(() => {
+    if (!selected) return [];
+    if (!activeTemplate) return selected.fields;
+    return activeTemplate.variables.map((variable): Field => {
+      const fieldName = variableToField(variable);
+      return selected.fields.find((field) => field.name === fieldName) ?? {
+        name: fieldName,
+        label: variableLabel(variable),
+        type: variable.includes("date") ? "date" : variable.includes("salary") ? "number" : "text",
+        required: true,
+      };
+    });
+  }, [activeTemplate, selected]);
+
+  const saveAsTemplate = async () => {
+    if (!selected || !document) return;
+    setSavingTemplate(true);
+    try {
+      const extracted = extractTemplate(editing ? editedDoc : document, formData);
+      const variables = extracted.variables.length ? extracted.variables : suggestedVariables;
+      const url = activeTemplate
+        ? `/api/document-templates/${activeTemplate.id}`
+        : "/api/document-templates";
+      const response = await fetch(url, {
+        method: activeTemplate ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json", ...getClientAuthHeaders() },
+        body: JSON.stringify({
+          type: selected.id,
+          name: activeTemplate?.name ?? `${selected.label} Template`,
+          content: extracted.content,
+          variables,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "Failed to save template");
+      setActiveTemplate(data.template);
+      setGeneratedByAI(false);
+      setDocument(renderTemplate(data.template.content, formData));
+      toast.success(activeTemplate ? "Template updated" : "Saved as reusable template");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to save template");
+    } finally {
+      setSavingTemplate(false);
+    }
   };
 
   const copyToClipboard = () => {
@@ -451,11 +579,16 @@ export default function DocumentsPage() {
   return (
     <PageWrapper>
       <div className="space-y-4">
-        <AiAssistantTabs />
+        <div className="no-print flex flex-wrap items-center justify-between gap-2">
+          <AiAssistantTabs />
+          <Link href="/ai-assistant/documents/templates" className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <FileCheck2 className="mr-1.5 h-3.5 w-3.5" /> Manage Templates
+          </Link>
+        </div>
 
         {!selected ? (
           /* ───── Type selection grid ───── */
-          <div className="space-y-6">
+          <div className="no-print space-y-6">
             {CATEGORIES.map((cat) => (
               <div key={cat.key} className="space-y-3">
                 <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
@@ -503,16 +636,26 @@ export default function DocumentsPage() {
 
             <div className="grid gap-4 lg:grid-cols-[420px_1fr]">
               {/* Form */}
-              <Card>
+              <Card className="no-print">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
                     <span className="text-xl">{selected.emoji}</span>
                     {selected.label}
                   </CardTitle>
                   <p className="text-xs text-muted-foreground">{selected.description}</p>
+                  {activeTemplate && (
+                    <Badge variant="secondary" className="mt-2 w-fit">
+                      Reusing {activeTemplate.name}
+                    </Badge>
+                  )}
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {selected.fields.map((field) => (
+                  {templateLoading && (
+                    <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Checking saved templates...
+                    </div>
+                  )}
+                  {!templateLoading && visibleFields.map((field) => (
                     <FieldInput
                       key={field.name}
                       field={field}
@@ -522,40 +665,57 @@ export default function DocumentsPage() {
                       onEmployeePick={pickEmployee}
                     />
                   ))}
-                  <div className="pt-2">
+                  {!templateLoading && !activeTemplate && <div className="pt-2">
                     <Button
                       className="w-full gap-1.5"
                       onClick={() => generate.execute()}
                       loading={generate.loading}
+                      disabled={!canGenerate}
                     >
                       {!generate.loading && <Sparkles className="h-3.5 w-3.5" />}
                       {generate.loading ? "Generating…" : "Generate with AI"}
                     </Button>
-                  </div>
+                  </div>}
+                  {!templateLoading && activeTemplate && (
+                    <p className="rounded-md border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                      Preview updates instantly from this saved template. No AI call is used.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
 
               {/* Preview */}
-              <Card className="overflow-hidden">
+              <Card className="document-preview overflow-hidden">
                 <CardHeader className="flex flex-row items-center justify-between no-print">
                   <CardTitle className="text-base">Preview</CardTitle>
                   {document && (
-                    <div className="flex gap-1.5">
+                    <div className="flex flex-wrap justify-end gap-1.5">
+                      <Button size="sm" onClick={() => window.print()} className="gap-1.5">
+                        <Printer className="h-3.5 w-3.5" /> Download PDF
+                      </Button>
                       <Button size="sm" variant="outline" onClick={copyToClipboard} className="gap-1.5">
                         <ClipboardCopy className="h-3.5 w-3.5" />
                         Copy
                       </Button>
-                      <Button
+                      {activeTemplate && canEdit && (
+                        <Link
+                          href={`/ai-assistant/documents/templates?edit=${activeTemplate.id}`}
+                          className={buttonVariants({ variant: "outline", size: "sm" })}
+                        >
+                          <Edit3 className="mr-1.5 h-3.5 w-3.5" /> Edit Template
+                        </Link>
+                      )}
+                      {canGenerate && <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => generate.execute()}
+                        onClick={() => generate.execute(true)}
                         disabled={generate.loading}
                         className="gap-1.5"
                       >
                         <RefreshCw className="h-3.5 w-3.5" />
-                        Regenerate
-                      </Button>
-                      <Button
+                        Regenerate with AI
+                      </Button>}
+                      {!activeTemplate && canEdit && <Button
                         size="sm"
                         variant={editing ? "default" : "outline"}
                         onClick={() => {
@@ -566,16 +726,13 @@ export default function DocumentsPage() {
                       >
                         <Edit3 className="h-3.5 w-3.5" />
                         {editing ? "Save edits" : "Edit"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => window.print()}
-                        className="gap-1.5"
-                      >
-                        <Printer className="h-3.5 w-3.5" />
-                        PDF
-                      </Button>
+                      </Button>}
+                      {generatedByAI && canGenerate && (
+                        <Button size="sm" variant="outline" onClick={saveAsTemplate} disabled={savingTemplate} className="gap-1.5">
+                          <Save className="h-3.5 w-3.5" />
+                          {savingTemplate ? "Saving..." : activeTemplate ? "Update Template" : "Save as Template"}
+                        </Button>
+                      )}
                     </div>
                   )}
                 </CardHeader>
@@ -597,7 +754,7 @@ export default function DocumentsPage() {
                     </div>
                   )}
                   {document && (
-                    <div className="print-area rounded-lg border bg-card p-6">
+                    <div className="print-area document-preview rounded-lg border bg-card p-6">
                       <div className="mb-6 border-b pb-4 text-center">
                         <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-blue-600">
                           <Sparkles className="h-5 w-5 text-white" />
@@ -618,7 +775,7 @@ export default function DocumentsPage() {
                         </pre>
                       )}
                       <div className="mt-8 border-t pt-4 text-[11px] text-muted-foreground no-print">
-                        Generated by HRFlow AI · {new Date().toLocaleString("en-PK")}
+                        {activeTemplate && !generatedByAI ? "Rendered from saved template" : "Generated by HRFlow AI"} · {new Date().toLocaleString("en-PK")}
                       </div>
                     </div>
                   )}

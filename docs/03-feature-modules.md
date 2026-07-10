@@ -440,3 +440,7 @@ The API validates per-template required fields and returns plain text. The UI su
 ### Interview kit
 
 Requires job title; optional experience level and skills. Gemini must return JSON containing five technical, three behavioral, and two culture-fit questions with evaluation guidance.
+
+### Reusable document templates
+
+Generated AI documents can be saved to `document_templates`. The system extracts placeholders such as `{{employee_name}}`, `{{salary}}`, and `{{joining_date}}`. Later documents of the same type and company render locally through variable substitution without calling Gemini. `/ai-assistant/documents/templates` supports use, preview, manual edit, AI regeneration, and delete actions.

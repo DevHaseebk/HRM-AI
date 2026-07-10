@@ -42,7 +42,9 @@ import { Button } from "@/components/ui/button";
 import { SidebarNavLink } from "@/components/shared/sidebar-nav-link";
 import { useAuthUser } from "@/components/shared/auth-provider";
 import { useToast } from "@/components/shared/toast-provider";
-import { getNavItemsForRole, clearAuth, ROLE_LABELS } from "@/lib/auth";
+import { NAV_ITEMS, clearAuth, ROLE_LABELS } from "@/lib/auth";
+import { usePermissions } from "@/components/shared/permissions-provider";
+import { getModuleForPath } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
 
 const iconMap = {
@@ -64,13 +66,15 @@ export function AppSidebar() {
   const router = useRouter();
   const pathname = usePathname();
   const toast = useToast();
-  const navItems = getNavItemsForRole(user.role);
+  const { can } = usePermissions();
+  const navItems = NAV_ITEMS.filter((item) => {
+    const permissionModule = getModuleForPath(item.href);
+    return !permissionModule || can(permissionModule, "view");
+  });
   const [attendanceOpen, setAttendanceOpen] = useState(true);
   const [sendingReminders, setSendingReminders] = useState(false);
 
-  const isHr = user.role === "super_admin" || user.role === "hr_manager";
-  const isTeamLeadOrAbove =
-    user.role === "super_admin" || user.role === "hr_manager" || user.role === "team_lead";
+  const canEditAttendance = can("attendance", "edit");
   const isAttendanceActive = pathname?.startsWith("/attendance");
   const isAiActive = pathname?.startsWith("/ai-assistant");
   const [aiOpen, setAiOpen] = useState(false);
@@ -84,8 +88,8 @@ export function AppSidebar() {
       router.prefetch(item.href);
     });
     if (user.employeeId) router.prefetch("/attendance/qr");
-    if (isTeamLeadOrAbove) router.prefetch("/attendance/bulk");
-  }, [navItems, router, user.employeeId, isTeamLeadOrAbove]);
+    if (canEditAttendance) router.prefetch("/attendance/bulk");
+  }, [navItems, router, user.employeeId, canEditAttendance]);
 
   useEffect(() => {
     if (isAttendanceActive) setAttendanceOpen(true);
@@ -180,7 +184,7 @@ export function AppSidebar() {
                             label="Documents"
                             icon={<FileText className="h-3.5 w-3.5 shrink-0" />}
                           />
-                          {isTeamLeadOrAbove && (
+                          {can("ai_assistant", "edit") && (
                             <SidebarNavLink
                               href="/ai-assistant/anomalies"
                               label="Anomalies"
@@ -230,14 +234,14 @@ export function AppSidebar() {
                               icon={<QrCode className="h-3.5 w-3.5 shrink-0" />}
                             />
                           )}
-                          {isTeamLeadOrAbove && (
+                          {canEditAttendance && (
                             <SidebarNavLink
                               href="/attendance/bulk"
                               label="Bulk Mark"
                               icon={<CheckSquare className="h-3.5 w-3.5 shrink-0" />}
                             />
                           )}
-                          {isHr && (
+                          {canEditAttendance && (
                             <button
                               type="button"
                               onClick={handleSendReminders}

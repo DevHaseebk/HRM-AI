@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { askGemini, GeminiError } from "@/lib/ai-gemini";
+import { getCompanyScope } from "@/lib/company-scope";
+import { fieldToVariable, mapTemplateRow } from "@/lib/document-templates";
+import { supabaseAdmin } from "@/lib/supabase";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -235,19 +238,81 @@ Include: PURPOSE, ELIGIBILITY (1+ year tenure), INCREMENT CYCLES (annual, Julyâ€
 };
 
 export async function POST(request: Request) {
-  let body: { documentType?: DocumentType; formData?: Record<string, any> };
+  let body: {
+    documentType?: DocumentType;
+    formData?: Record<string, any>;
+    forceRegenerate?: boolean;
+    templateContent?: string;
+    variables?: string[];
+  };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 });
   }
 
-  const { documentType, formData = {} } = body;
+  const { documentType, formData = {}, forceRegenerate = false, templateContent } = body;
   if (!documentType || !PROMPTS[documentType]) {
     return NextResponse.json(
       { error: "Unknown or missing documentType" },
       { status: 400 }
     );
+  }
+
+  const suggestedVariables = Array.from(new Set(
+    Object.keys(formData)
+      .filter((field) => field !== "employeePicker" && formData[field] !== "")
+      .map(fieldToVariable)
+  ));
+
+  if (!forceRegenerate) {
+    const scope = getCompanyScope(request);
+    let templateQuery = supabaseAdmin
+      .from("document_templates")
+      .select("*")
+      .eq("type", documentType)
+      .order("updated_at", { ascending: false })
+      .limit(1);
+    if (scope.companyId) templateQuery = templateQuery.eq("company_id", scope.companyId);
+    else templateQuery = templateQuery.is("company_id", null);
+    const { data: template } = await templateQuery.maybeSingle();
+    if (template) {
+      return NextResponse.json({
+        document: template.content,
+        documentType,
+        source: "template",
+        template: mapTemplateRow(template),
+        suggestedVariables: Array.isArray(template.variables) ? template.variables : [],
+      });
+    }
+  }
+
+  if (forceRegenerate && templateContent) {
+    try {
+      const variables = Array.isArray(body.variables) ? body.variables : [];
+      const text = await askGemini(
+        SYSTEM_BASE,
+        `Improve and rewrite this reusable ${documentType.replaceAll("_", " ")} template.
+
+Keep every variable placeholder exactly in double braces, for example {{employee_name}}. Do not replace placeholders with sample values. Required placeholders: ${variables.map((item) => `{{${item}}}`).join(", ") || "preserve all placeholders already present"}.
+
+CURRENT TEMPLATE:
+${templateContent}`,
+        { temperature: 0.45, maxOutputTokens: 2048 }
+      );
+      return NextResponse.json({
+        document: text,
+        documentType,
+        source: "ai",
+        suggestedVariables: variables,
+      });
+    } catch (err) {
+      const status = err instanceof GeminiError ? err.status : 500;
+      return NextResponse.json(
+        { error: err instanceof Error ? err.message : "Document regeneration failed" },
+        { status }
+      );
+    }
   }
 
   const { prompt, required } = PROMPTS[documentType](formData);
@@ -265,7 +330,12 @@ export async function POST(request: Request) {
       temperature: 0.55,
       maxOutputTokens: 2048,
     });
-    return NextResponse.json({ document: text, documentType });
+    return NextResponse.json({
+      document: text,
+      documentType,
+      source: "ai",
+      suggestedVariables,
+    });
   } catch (err) {
     const status = err instanceof GeminiError ? err.status : 500;
     const message =

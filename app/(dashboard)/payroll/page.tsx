@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { useHrmData, useHrmActions } from "@/components/shared/hrm-data-provider";
 import { useAuthUser } from "@/components/shared/auth-provider";
 import { canViewAllPayroll } from "@/lib/auth";
+import { usePermissions } from "@/components/shared/permissions-provider";
 import { formatPKR, getEmployeeName } from "@/lib/helpers";
 import { createRecord, currentMonthISO, updateRecordApi } from "@/lib/hrm-api";
 import { useToast } from "@/components/shared/toast-provider";
@@ -46,7 +47,10 @@ export default function PayrollPage() {
   const { employees, payroll } = useHrmData();
   const { refetch } = useHrmActions();
   const toast = useToast();
-  const canManage = canViewAllPayroll(user.role);
+  const { can } = usePermissions();
+  const canViewAll = canViewAllPayroll(user.role);
+  const canCreate = can("payroll", "create");
+  const canEdit = can("payroll", "edit");
 
   const [monthFilter, setMonthFilter] = useState(currentMonthISO());
   const [generateOpen, setGenerateOpen] = useState(false);
@@ -68,11 +72,11 @@ export default function PayrollPage() {
 
   const filtered = useMemo(() => {
     let records = payroll.filter((p) => p.month === monthFilter);
-    if (!canManage && user.employeeId) {
+    if (!canViewAll && user.employeeId) {
       records = records.filter((p) => p.employeeId === user.employeeId);
     }
     return records;
-  }, [payroll, monthFilter, canManage, user.employeeId]);
+  }, [payroll, monthFilter, canViewAll, user.employeeId]);
 
   const totalDisbursed = filtered
     .filter((p) => p.status === "paid")
@@ -128,7 +132,7 @@ export default function PayrollPage() {
               ))}
             </SelectContent>
           </Select>
-          {canManage && (
+          {canCreate && (
             <Button size="sm" onClick={() => setGenerateOpen(true)}>
               <Plus className="mr-1.5 h-4 w-4" /> Generate Payslip
             </Button>
@@ -136,7 +140,7 @@ export default function PayrollPage() {
         </div>
       </div>
 
-      {canManage && (
+      {canViewAll && (
         <div className="grid gap-4 sm:grid-cols-3">
           <StatCard title="Total Disbursed" value={formatPKR(totalDisbursed)} icon={Wallet} accent="emerald" />
           <StatCard title="Records" value={filtered.length} icon={FileText} accent="blue" />
@@ -177,7 +181,7 @@ export default function PayrollPage() {
                         <Button size="sm" variant="outline" className="h-7" onClick={() => setPayslipRecord(record)}>
                           View
                         </Button>
-                        {canManage && record.status === "processing" && (
+                        {canEdit && record.status === "processing" && (
                           <Button size="sm" className="h-7" onClick={() => handleMarkPaid(record)}>Mark Paid</Button>
                         )}
                       </div>

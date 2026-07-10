@@ -34,6 +34,8 @@ All controller files are Next.js route handlers; there is no separate controller
 | GET | `/api/employees/:id` | Get one employee | No role guard; company-scoped header | Path ID | Employee row | `app/api/employees/[id]/route.ts` |
 | PUT | `/api/employees/:id` | Update employee | UI management roles; no role guard; company-scoped header | Partial DB employee fields | Updated employee | `app/api/employees/[id]/route.ts` |
 | DELETE | `/api/employees/:id` | Delete employee | UI management roles; no role guard; company-scoped header | Path ID | Message and deleted row | `app/api/employees/[id]/route.ts` |
+| GET | `/api/roles-permissions` | Load merged module permissions and role user counts | Used by all dashboard roles; management UI is Super/Company Admin | Auth/company headers | Permissions and user counts | `app/api/roles-permissions/route.ts` |
+| POST | `/api/roles-permissions` | Bulk upsert configurable role permissions | Explicit Super Admin/Company Admin header check | `{permissions:[...]}` | Merged permissions and message | `app/api/roles-permissions/route.ts` |
 
 ## Attendance
 
@@ -104,6 +106,11 @@ All controller files are Next.js route handlers; there is no separate controller
 | POST | `/api/ai-reports` | Generate monthly HR report | UI: Super Admin, Company Admin, HR Manager; company-scoped header | `{month,year}` | Report text and metrics | `app/api/ai-reports/route.ts` |
 | POST | `/api/ai-documents` | Generate HR document | UI: all AI users; no role guard | `{documentType,formData}` | Plain-text document | `app/api/ai-documents/route.ts` |
 | POST | `/api/ai-interview` | Generate interview kit | UI Documents; no role guard | `{jobTitle,experienceLevel?,skills?}` | Parsed JSON kit | `app/api/ai-interview/route.ts` |
+| GET | `/api/document-templates` | List templates by company and optional type | AI Documents users; company-scoped header | Optional `type` query | `{templates}` | `app/api/document-templates/route.ts` |
+| POST | `/api/document-templates` | Save a reusable document template | Permission-aware UI; no verified server session | Type, name, content, variables | Created template | `app/api/document-templates/route.ts` |
+| GET | `/api/document-templates/:id` | Load one scoped template | AI Documents users | Path ID | Template | `app/api/document-templates/[id]/route.ts` |
+| PUT | `/api/document-templates/:id` | Edit or overwrite template | Permission-aware UI | Name/content/variables | Updated template | `app/api/document-templates/[id]/route.ts` |
+| DELETE | `/api/document-templates/:id` | Delete template | Permission-aware UI | Path ID | `{success:true}` | `app/api/document-templates/[id]/route.ts` |
 
 ## Legacy JSON APIs
 

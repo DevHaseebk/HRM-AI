@@ -6,6 +6,7 @@ import { PageWrapper } from "@/components/shared/page-wrapper";
 import { useAuthUser } from "@/components/shared/auth-provider";
 import { useHrmData, useHrmActions } from "@/components/shared/hrm-data-provider";
 import { useToast } from "@/components/shared/toast-provider";
+import { usePermissions } from "@/components/shared/permissions-provider";
 import { canManageEmployees, getTeamMemberIds } from "@/lib/auth";
 import { getClientAuthHeaders } from "@/lib/company-scope";
 import { todayISO } from "@/lib/hrm-api";
@@ -42,6 +43,8 @@ export default function BulkAttendancePage() {
   const { employees, attendance } = useHrmData();
   const { refetch } = useHrmActions();
   const toast = useToast();
+  const { can } = usePermissions();
+  const canEditAttendance = can("attendance", "edit");
   const isHr = canManageEmployees(user.role);
 
   const [date, setDate] = useState(todayISO());
@@ -149,10 +152,10 @@ export default function BulkAttendancePage() {
               className="w-[160px]"
             />
           </div>
-          <Button variant="outline" size="sm" onClick={selectAllPresent}>
+          {canEditAttendance && <Button variant="outline" size="sm" onClick={selectAllPresent}>
             <CheckCircle2 className="mr-1.5 h-4 w-4" /> Select All Present
-          </Button>
-          {isHr && (
+          </Button>}
+          {isHr && canEditAttendance && (
             <Button
               variant="outline"
               size="sm"
@@ -164,10 +167,10 @@ export default function BulkAttendancePage() {
               {sendingReminders ? "Sending..." : "Send Reminders"}
             </Button>
           )}
-          <Button size="sm" onClick={handleSave} disabled={saving}>
+          {canEditAttendance && <Button size="sm" onClick={handleSave} disabled={saving}>
             <Save className="mr-1.5 h-4 w-4" />
             {saving ? "Saving..." : "Mark All"}
-          </Button>
+          </Button>}
         </div>
       </div>
 

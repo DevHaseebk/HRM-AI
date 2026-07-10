@@ -15,7 +15,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { useHrmData, useHrmActions } from "@/components/shared/hrm-data-provider";
 import { useAuthUser } from "@/components/shared/auth-provider";
-import { canManageEmployees } from "@/lib/auth";
+import { usePermissions } from "@/components/shared/permissions-provider";
 import { getClientAuthHeaders } from "@/lib/company-scope";
 import { formatPKR } from "@/lib/helpers";
 import { createRecord, deleteRecordApi, exportToCsv, updateRecordApi } from "@/lib/hrm-api";
@@ -81,7 +81,10 @@ export default function EmployeesPage() {
   const { employees, settings } = useHrmData();
   const { refetch } = useHrmActions();
   const toast = useToast();
-  const canManage = canManageEmployees(user.role);
+  const { can } = usePermissions();
+  const canCreate = can("employees", "create");
+  const canEdit = can("employees", "edit");
+  const canDelete = can("employees", "delete");
 
   const [search, setSearch] = useState("");
   const [deptFilter, setDeptFilter] = useState("all");
@@ -199,7 +202,7 @@ export default function EmployeesPage() {
           <Button variant="outline" size="sm" onClick={handleExport}>
             <Download className="mr-1.5 h-4 w-4" /> Export CSV
           </Button>
-          {canManage && (
+          {canCreate && (
             <Button
               size="sm"
               onClick={() => {
@@ -300,14 +303,18 @@ export default function EmployeesPage() {
                             <Button variant="ghost" size="icon-sm" onClick={() => setViewEmployee(emp)}>
                               <Eye className="h-4 w-4" />
                             </Button>
-                            {canManage && (
+                            {(canEdit || canDelete) && (
                               <>
+                                {canEdit && (
                                 <Button variant="ghost" size="icon-sm" onClick={() => { setEditEmployee({ ...emp }); setDialogOpen(true); }}>
                                   <Pencil className="h-4 w-4" />
                                 </Button>
+                                )}
+                                {canDelete && (
                                 <Button variant="ghost" size="icon-sm" onClick={() => setDeleteId(emp.id)}>
                                   <Trash2 className="h-4 w-4 text-destructive" />
                                 </Button>
+                                )}
                               </>
                             )}
                           </div>

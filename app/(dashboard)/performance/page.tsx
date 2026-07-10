@@ -7,10 +7,12 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { useHrmData, useHrmActions } from "@/components/shared/hrm-data-provider";
 import { useAuthUser } from "@/components/shared/auth-provider";
-import { canManagePerformance, getTeamMemberIds } from "@/lib/auth";
+import { getTeamMemberIds } from "@/lib/auth";
+import { usePermissions } from "@/components/shared/permissions-provider";
 import { getEmployeeName } from "@/lib/helpers";
 import { createRecord, updateRecordApi } from "@/lib/hrm-api";
 import { useToast } from "@/components/shared/toast-provider";
+import { cn } from "@/lib/utils";
 import type { PerformanceReview } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,7 +48,9 @@ export default function PerformancePage() {
   const { employees, performanceReviews } = useHrmData();
   const { refetch } = useHrmActions();
   const toast = useToast();
-  const canManage = canManagePerformance(user.role);
+  const { can } = usePermissions();
+  const canCreate = can("performance", "create");
+  const canEdit = can("performance", "edit");
 
   const [reviewOpen, setReviewOpen] = useState(false);
   const [editReview, setEditReview] = useState<PerformanceReview | null>(null);
@@ -77,11 +81,11 @@ export default function PerformancePage() {
     if (user.role === "team_lead" && user.employeeId) {
       return employees.filter((e) => e.managerId === user.employeeId);
     }
-    if (canManage && user.role !== "employee") {
+    if ((canCreate || canEdit) && user.role !== "employee") {
       return employees.filter((e) => e.status === "active");
     }
     return [];
-  }, [employees, user, canManage]);
+  }, [employees, user, canCreate, canEdit]);
 
   const handleSave = async () => {
     if (!form.employeeId) return;
@@ -137,7 +141,7 @@ export default function PerformancePage() {
           <h2 className="text-lg font-semibold">Performance Reviews</h2>
           <p className="text-sm text-muted-foreground">Ratings, goals &amp; quarterly reviews</p>
         </div>
-        {canManage && reviewableEmployees.length > 0 && (
+        {canCreate && reviewableEmployees.length > 0 && (
           <Button size="sm" onClick={openNewReview}>
             <Plus className="mr-1.5 h-4 w-4" /> New Review
           </Button>
@@ -148,7 +152,7 @@ export default function PerformancePage() {
         {filtered.slice(0, 3).map((review) => {
           const goalPct = review.goals ? Math.round((review.goalsCompleted / review.goals) * 100) : 0;
           return (
-            <Card key={review.id} className="cursor-pointer transition-shadow hover:shadow-md" onClick={() => canManage && openEditReview(review)}>
+            <Card key={review.id} className={cn("transition-shadow hover:shadow-md", canEdit && "cursor-pointer")} onClick={() => canEdit && openEditReview(review)}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div>
@@ -180,7 +184,7 @@ export default function PerformancePage() {
         <CardHeader><CardTitle className="text-base">All Reviews</CardTitle></CardHeader>
         <CardContent>
           {filtered.length === 0 ? (
-            <EmptyState icon={Award} title="No performance reviews" description="Create a review to get started." action={canManage ? { label: "New Review", onClick: openNewReview } : undefined} />
+            <EmptyState icon={Award} title="No performance reviews" description="Create a review to get started." action={canCreate ? { label: "New Review", onClick: openNewReview } : undefined} />
           ) : (
             <Table>
               <TableHeader>
@@ -198,7 +202,7 @@ export default function PerformancePage() {
                 {filtered.map((review) => {
                   const goalPct = review.goals ? Math.round((review.goalsCompleted / review.goals) * 100) : 0;
                   return (
-                    <TableRow key={review.id} className={canManage ? "cursor-pointer" : ""} onClick={() => canManage && openEditReview(review)}>
+                    <TableRow key={review.id} className={canEdit ? "cursor-pointer" : ""} onClick={() => canEdit && openEditReview(review)}>
                       <TableCell className="font-medium">{getEmployeeName(employees, review.employeeId)}</TableCell>
                       <TableCell>{review.period}</TableCell>
                       <TableCell>{review.rating > 0 ? `${review.rating}/5` : "—"}</TableCell>

@@ -22,6 +22,7 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import { useHrmData, useHrmActions } from "@/components/shared/hrm-data-provider";
 import { useAuthUser } from "@/components/shared/auth-provider";
 import { useToast } from "@/components/shared/toast-provider";
+import { usePermissions } from "@/components/shared/permissions-provider";
 import { canManageEmployees, getTeamMemberIds } from "@/lib/auth";
 import { getClientAuthHeaders } from "@/lib/company-scope";
 import { getEmployeeName } from "@/lib/helpers";
@@ -59,6 +60,9 @@ export default function AttendancePage() {
   const { employees, attendance, settings } = useHrmData();
   const { refetch } = useHrmActions();
   const toast = useToast();
+  const { can } = usePermissions();
+  const canCreateAttendance = can("attendance", "create");
+  const canEditAttendance = can("attendance", "edit");
   const isAdmin = canManageEmployees(user.role);
   const isTeamLead = user.role === "team_lead";
   const today = todayISO();
@@ -100,7 +104,7 @@ export default function AttendancePage() {
               <QrCode className="mr-1.5 h-4 w-4" /> My QR Code
             </Link>
           )}
-          {(isTeamLead || isAdmin) && (
+          {canEditAttendance && (
             <Link
               href="/attendance/bulk"
               className={cn(buttonVariants({ size: "sm" }))}
@@ -126,6 +130,7 @@ export default function AttendancePage() {
             attendance={attendance}
             refetch={refetch}
             toast={toast}
+            canCreate={canCreateAttendance}
           />
         </TabsContent>
 
@@ -141,7 +146,7 @@ export default function AttendancePage() {
 
         {isAdmin && (
           <TabsContent value="all" className="mt-4">
-            <AllAttendanceTab employees={employees} attendance={attendance} />
+            <AllAttendanceTab employees={employees} attendance={attendance} canEdit={canEditAttendance} />
           </TabsContent>
         )}
       </Tabs>
@@ -156,11 +161,13 @@ function MyAttendanceTab({
   attendance,
   refetch,
   toast,
+  canCreate,
 }: {
   user: { employeeId: string | null };
   attendance: AttendanceRecord[];
   refetch: () => Promise<void>;
   toast: { success: (m: string) => void; error: (m: string) => void };
+  canCreate: boolean;
 }) {
   const today = todayISO();
   const [acting, setActing] = useState(false);
@@ -303,7 +310,7 @@ function MyAttendanceTab({
             </div>
           </div>
           <div className="flex gap-2">
-            {!checkInDone && (
+            {canCreate && !checkInDone && (
               <Button
                 size="lg"
                 onClick={handleCheckIn}
@@ -314,7 +321,7 @@ function MyAttendanceTab({
                 {gettingLocation ? "Getting your location..." : acting ? "Checking in..." : "Check In"}
               </Button>
             )}
-            {checkInDone && !checkOutDone && (
+            {canCreate && checkInDone && !checkOutDone && (
               <Button
                 size="lg"
                 onClick={handleCheckOut}
@@ -576,9 +583,11 @@ function TeamAttendanceTab({
 function AllAttendanceTab({
   employees,
   attendance,
+  canEdit,
 }: {
   employees: { id: string; name: string; email: string; department: string }[];
   attendance: AttendanceRecord[];
+  canEdit: boolean;
 }) {
   const [from, setFrom] = useState(todayISO().slice(0, 7) + "-01");
   const [to, setTo] = useState(todayISO());
@@ -681,7 +690,7 @@ function AllAttendanceTab({
               icon={Clock}
               title="No records"
               description="No attendance records match the filters."
-              action={{ label: "Bulk mark attendance", onClick: () => (window.location.href = "/attendance/bulk") }}
+              action={canEdit ? { label: "Bulk mark attendance", onClick: () => (window.location.href = "/attendance/bulk") } : undefined}
             />
           ) : (
             <div className="overflow-x-auto">

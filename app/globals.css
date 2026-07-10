@@ -171,11 +171,16 @@
   animation: page-fade-in 200ms ease-out;
 }
 
+.print-only {
+  display: none;
+}
+
 /* ───────────────────── Print styles (PDF download) ───────────────────── */
 @media print {
   body {
     background: white !important;
     color: black !important;
+    font-family: "Times New Roman", Times, serif !important;
   }
   body * {
     visibility: hidden;
@@ -194,6 +199,14 @@
   }
   .no-print {
     display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .document-preview {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
   }
   @page {
     size: A4;
