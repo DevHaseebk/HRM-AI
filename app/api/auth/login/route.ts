@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { supabaseAdmin } from "@/lib/supabase";
 import type { AuthUser } from "@/lib/types";
+import { createSession } from "@/lib/server-auth";
 
 export async function POST(request: Request) {
   try {
@@ -31,9 +32,14 @@ export async function POST(request: Request) {
       );
     }
 
-    const passwordMatches = user.password_hash
-      ? await bcrypt.compare(password, user.password_hash)
-      : user.password === password;
+    if (!user.password_hash) {
+      return NextResponse.json(
+        { error: "Invalid email or password" },
+        { status: 401 }
+      );
+    }
+
+    const passwordMatches = await bcrypt.compare(password, user.password_hash);
 
     if (!passwordMatches) {
       return NextResponse.json(
@@ -58,6 +64,13 @@ export async function POST(request: Request) {
       mustChangePassword: user.must_change_password ?? false,
       isTempPassword: user.is_temp_password ?? false,
     };
+
+    await createSession({
+      id: authUser.id,
+      role: authUser.role,
+      company_id: authUser.companyId ?? null,
+      employee_id: authUser.employeeId,
+    });
 
     return NextResponse.json({ user: authUser });
   } catch {

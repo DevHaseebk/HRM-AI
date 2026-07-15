@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { getServerSession } from "@/lib/server-auth";
 
 const PROTECTED_PREFIXES = [
   "/dashboard",
@@ -10,6 +11,7 @@ const PROTECTED_PREFIXES = [
   "/performance",
   "/announcements",
   "/ai-assistant",
+  "/reports",
   "/settings",
   "/change-password",
 ];
@@ -20,13 +22,21 @@ function isProtectedPath(pathname: string) {
   );
 }
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAuthed = request.cookies.get("hrm_auth")?.value;
 
   if (!isAuthed && isProtectedPath(pathname)) {
     const loginUrl = new URL("/login", request.url);
     return NextResponse.redirect(loginUrl);
+  }
+
+  if (isProtectedPath(pathname)) {
+    const session = await getServerSession(request);
+    if (!session) {
+      const loginUrl = new URL("/login", request.url);
+      return NextResponse.redirect(loginUrl);
+    }
   }
 
   if (isAuthed && pathname === "/login") {

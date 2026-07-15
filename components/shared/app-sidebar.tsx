@@ -95,7 +95,12 @@ export function AppSidebar() {
     if (isAttendanceActive) setAttendanceOpen(true);
   }, [isAttendanceActive]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // ignore — still clear client-side state and redirect
+    }
     clearAuth();
     window.location.href = "/login";
   };

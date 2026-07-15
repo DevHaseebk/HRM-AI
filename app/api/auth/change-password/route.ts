@@ -1,14 +1,21 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { supabaseAdmin } from "@/lib/supabase";
+import { getServerSession } from "@/lib/server-auth";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { userId, currentPassword, newPassword } = await request.json();
+    const session = await getServerSession(request);
+    if (!session) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+    const userId = session.id;
 
-    if (!userId || !currentPassword || !newPassword) {
+    const { currentPassword, newPassword } = await request.json();
+
+    if (!currentPassword || !newPassword) {
       return NextResponse.json(
-        { error: "userId, currentPassword, and newPassword are required" },
+        { error: "currentPassword and newPassword are required" },
         { status: 400 }
       );
     }
