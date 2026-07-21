@@ -1012,5 +1012,32 @@ npm run lint
 
 ---
 
+---
+
+## 14. NAVIGATION LATENCY INVESTIGATION (2026-07-15)
+
+**Symptom:** Client-side sidebar navigation feels slow — old page stays visible 1–2s before new page appears.
+
+**Root cause (measured):** Next.js **dev-mode on-demand route compilation**. Not a production code bug.
+
+| Mode | First visit to a route | Repeat visit (warm) |
+|------|------------------------|---------------------|
+| `next dev` | Compiling… 0.5–12s (e.g. `/dashboard` 12.3s, `/employees` 6s, `/recruitment` 1.6s) | ~50–200ms document; **~70ms** client nav |
+| `next start` (prod) | RSC ~9–15ms | RSC ~9–10ms |
+
+**Browser evidence (dev, headless Chrome):** cold client click Dashboard→Recruitment = **3636ms** (RSC fetch `/recruitment?_rsc=…` 3595ms while `Compiling /recruitment`); same click warm = **70ms**.
+
+**Ruled out:**
+- `HrmDataProvider` — lives in dashboard layout above `{children}`; does **not** remount/refetch on nav (mount delta 0). Initial `fetchAllHrmData` ~7.5s is first-load only.
+- Middleware `getServerSession()` — JWT verify only, **0.005–0.12ms** prod / ~0.5–4ms first-hit dev. No DB.
+- Nav links — `next/link` via `SidebarNavLink` (not `<a>` / full reload).
+- Permissions — cached after mount; `PermissionRouteGuard` is sync `can()` only.
+
+**Secondary (prod polish, not the 1–2s):** `/dashboard` First Load JS **252 kB** (133 kB page — Recharts static imports); `PageTransition` remounts children (`key={pathname}`) + 200ms CSS fade.
+
+**Recommended next task:** Treat delay as expected in `npm run dev`. Optional: dynamic-import Recharts charts; consider removing `key={pathname}` remount if warm-nav polish needed. Do not “fix” middleware/HrmData for this symptom.
+
+---
+
 *End of HRFlow Complete Handover Document*  
 *Prepared from: codebase findings report (July 11, 2026) + full conversation history*

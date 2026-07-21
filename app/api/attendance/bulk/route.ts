@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getCompanyScope } from "@/lib/company-scope";
+import { getServerSession } from "@/lib/server-auth";
 
 const VALID_STATUS = ["present", "absent", "late", "half_day", "wfh"];
+const MANAGE_ROLES = ["super_admin", "company_admin", "hr_manager", "team_lead"];
 
 interface BulkRecord {
   employee_id: string;
@@ -10,8 +11,16 @@ interface BulkRecord {
   check_in_time?: string | null;
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(request);
+    if (!session) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+    if (!MANAGE_ROLES.includes(session.role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const body = (await request.json()) as {
       date?: string;
       records?: BulkRecord[];
@@ -47,19 +56,25 @@ export async function POST(request: Request) {
       );
     }
 
-    let savedCount = 0;
-    const scope = getCompanyScope(request);
-
-    if (scope.shouldScope) {
+    if (session.role !== "super_admin") {
       const requestedIds = cleaned.map((record) => record.employee_id);
       const { data: allowedEmployees } = await supabaseAdmin
         .from("employees")
         .select("id")
         .in("id", requestedIds)
-        .eq("company_id", scope.companyId);
+        .eq("company_id", session.company_id);
       const allowedIds = new Set((allowedEmployees ?? []).map((employee) => employee.id));
-      cleaned.splice(0, cleaned.length, ...cleaned.filter((record) => allowedIds.has(record.employee_id)));
+      const allValid = requestedIds.every((id) => allowedIds.has(id));
+
+      if (!allValid) {
+        return NextResponse.json(
+          { error: "One or more employees do not belong to your company" },
+          { status: 403 }
+        );
+      }
     }
+
+    let savedCount = 0;
 
     for (const record of cleaned) {
       const { data: existing } = await supabaseAdmin

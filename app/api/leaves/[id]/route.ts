@@ -1,15 +1,24 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { sendLeaveStatusEmail } from "@/lib/mailer";
-import { getCompanyScope } from "@/lib/company-scope";
+import { getServerSession } from "@/lib/server-auth";
+
+const MANAGE_ROLES = ["super_admin", "company_admin", "hr_manager", "team_lead"];
 
 export async function PUT(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const session = await getServerSession(request);
+    if (!session) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+    if (!MANAGE_ROLES.includes(session.role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const body = await request.json();
-    const scope = getCompanyScope(request);
 
     if (!body.status || !["approved", "rejected"].includes(body.status)) {
       return NextResponse.json(
@@ -26,17 +35,19 @@ export async function PUT(
       updates.approved_by = body.approved_by;
     }
 
-    if (scope.shouldScope) {
-      const { data: existing } = await supabaseAdmin
-        .from("leaves")
-        .select("id, employees!inner(company_id)")
-        .eq("id", params.id)
-        .eq("employees.company_id", scope.companyId)
-        .maybeSingle();
+    let existingQuery = supabaseAdmin
+      .from("leaves")
+      .select("id, employees!inner(company_id)")
+      .eq("id", params.id);
 
-      if (!existing) {
-        return NextResponse.json({ error: "Leave request not found in your company" }, { status: 403 });
-      }
+    if (session.role !== "super_admin") {
+      existingQuery = existingQuery.eq("employees.company_id", session.company_id);
+    }
+
+    const { data: existing } = await existingQuery.maybeSingle();
+
+    if (!existing) {
+      return NextResponse.json({ error: "Leave request not found" }, { status: 404 });
     }
 
     const { data, error } = await supabaseAdmin

@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { haversineDistance } from "@/lib/location";
+import { getServerSession } from "@/lib/server-auth";
 
 function todayISO() {
   return new Intl.DateTimeFormat("en-CA", {
@@ -33,8 +34,13 @@ function validCoordinate(value: unknown, min: number, max: number) {
   return Number.isFinite(number) && number >= min && number <= max;
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(request);
+    if (!session) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
     const body = await request.json();
     const employeeId = String(body.employee_id ?? "");
     const latitude = Number(body.latitude);
@@ -42,6 +48,15 @@ export async function POST(request: Request) {
 
     if (!employeeId) {
       return NextResponse.json({ error: "employee_id is required" }, { status: 400 });
+    }
+    if (!session.employee_id) {
+      return NextResponse.json(
+        { error: "Your account is not linked to an employee record" },
+        { status: 400 }
+      );
+    }
+    if (session.employee_id !== employeeId) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     if (!validCoordinate(body.latitude, -90, 90) || !validCoordinate(body.longitude, -180, 180)) {
       return NextResponse.json(

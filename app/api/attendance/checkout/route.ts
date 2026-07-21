@@ -1,12 +1,18 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
+import { getServerSession } from "@/lib/server-auth";
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(request);
+    if (!session) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
     const { employee_id } = await request.json();
 
     if (!employee_id) {
@@ -14,6 +20,15 @@ export async function POST(request: Request) {
         { error: "employee_id is required" },
         { status: 400 }
       );
+    }
+    if (!session.employee_id) {
+      return NextResponse.json(
+        { error: "Your account is not linked to an employee record" },
+        { status: 400 }
+      );
+    }
+    if (session.employee_id !== employee_id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const date = todayISO();

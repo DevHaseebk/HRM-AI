@@ -1,21 +1,24 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getCompanyScope } from "@/lib/company-scope";
+import { getServerSession } from "@/lib/server-auth";
 
-export async function GET(request: Request) {
+const MANAGE_ROLES = ["super_admin", "company_admin", "hr_manager", "team_lead"];
+
+export async function GET(request: NextRequest) {
   try {
+    const session = await getServerSession(request);
+    if (!session) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const employeeId = searchParams.get("employee_id");
     const date = searchParams.get("date");
 
-    const scope = getCompanyScope(request);
-    let query = scope.shouldScope
-      ? supabaseAdmin.from("attendance").select("*, employees!inner(company_id)")
+    const scoped = session.role !== "super_admin";
+    let query = scoped
+      ? supabaseAdmin.from("attendance").select("*, employees!inner(company_id)").eq("employees.company_id", session.company_id)
       : supabaseAdmin.from("attendance").select("*");
-
-    if (scope.shouldScope) {
-      query = query.eq("employees.company_id", scope.companyId);
-    }
 
     if (employeeId) {
       query = query.eq("employee_id", employeeId);
@@ -36,10 +39,17 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(request);
+    if (!session) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+    if (!MANAGE_ROLES.includes(session.role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const body = await request.json();
-    const scope = getCompanyScope(request);
 
     if (!body.employee_id || !body.date) {
       return NextResponse.json(
@@ -48,17 +58,18 @@ export async function POST(request: Request) {
       );
     }
 
-    if (scope.shouldScope) {
-      const { data: employee } = await supabaseAdmin
-        .from("employees")
-        .select("id")
-        .eq("id", body.employee_id)
-        .eq("company_id", scope.companyId)
-        .maybeSingle();
+    const { data: employee } = await supabaseAdmin
+      .from("employees")
+      .select("id, company_id")
+      .eq("id", body.employee_id)
+      .maybeSingle();
 
-      if (!employee) {
-        return NextResponse.json({ error: "Employee not found in your company" }, { status: 403 });
-      }
+    if (!employee) {
+      return NextResponse.json({ error: "Employee not found" }, { status: 404 });
+    }
+
+    if (session.role !== "super_admin" && employee.company_id !== session.company_id) {
+      return NextResponse.json({ error: "Employee not found in your company" }, { status: 403 });
     }
 
     const { data, error } = await supabaseAdmin

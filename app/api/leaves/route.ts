@@ -1,21 +1,24 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getCompanyScope } from "@/lib/company-scope";
+import { getServerSession } from "@/lib/server-auth";
 
-export async function GET(request: Request) {
+const MANAGE_ROLES = ["super_admin", "company_admin", "hr_manager", "team_lead"];
+
+export async function GET(request: NextRequest) {
   try {
+    const session = await getServerSession(request);
+    if (!session) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const employeeId = searchParams.get("employee_id");
     const status = searchParams.get("status");
 
-    const scope = getCompanyScope(request);
-    let query = scope.shouldScope
-      ? supabaseAdmin.from("leaves").select("*, employees!inner(company_id)")
+    const scoped = session.role !== "super_admin";
+    let query = scoped
+      ? supabaseAdmin.from("leaves").select("*, employees!inner(company_id)").eq("employees.company_id", session.company_id)
       : supabaseAdmin.from("leaves").select("*");
-
-    if (scope.shouldScope) {
-      query = query.eq("employees.company_id", scope.companyId);
-    }
 
     if (employeeId) {
       query = query.eq("employee_id", employeeId);
@@ -36,10 +39,14 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(request);
+    if (!session) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
     const body = await request.json();
-    const scope = getCompanyScope(request);
 
     if (!body.employee_id || !body.start_date || !body.end_date) {
       return NextResponse.json(
@@ -48,12 +55,16 @@ export async function POST(request: Request) {
       );
     }
 
-    if (scope.shouldScope) {
+    if (!MANAGE_ROLES.includes(session.role) && body.employee_id !== session.employee_id) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    if (session.role !== "super_admin") {
       const { data: employee } = await supabaseAdmin
         .from("employees")
         .select("id")
         .eq("id", body.employee_id)
-        .eq("company_id", scope.companyId)
+        .eq("company_id", session.company_id)
         .maybeSingle();
 
       if (!employee) {

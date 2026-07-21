@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   ArrowRight,
   Briefcase,
+  Building2,
   Eye,
   EyeOff,
   Shield,
@@ -28,16 +29,24 @@ const QUICK_ACCOUNTS: {
   accent: string;
 }[] = [
   {
-    email: "super@hr.com",
-    password: "pass123",
+    email: "admin@hr.com",
+    password: "123456",
     role: "super_admin",
     description: "Full system access",
     icon: Shield,
     accent: "from-violet-500/20 to-violet-500/5 border-violet-500/20 hover:border-violet-500/40",
   },
   {
+    email: "company@hr.com",
+    password: "123456",
+    role: "company_admin",
+    description: "Company-wide administration",
+    icon: Building2,
+    accent: "from-pink-500/20 to-pink-500/5 border-pink-500/20 hover:border-pink-500/40",
+  },
+  {
     email: "hr@hr.com",
-    password: "pass123",
+    password: "123456",
     role: "hr_manager",
     description: "HR operations & payroll",
     icon: Users,
@@ -45,15 +54,15 @@ const QUICK_ACCOUNTS: {
   },
   {
     email: "lead@hr.com",
-    password: "pass123",
+    password: "123456",
     role: "team_lead",
     description: "Team attendance & leaves",
     icon: Briefcase,
     accent: "from-emerald-500/20 to-emerald-500/5 border-emerald-500/20 hover:border-emerald-500/40",
   },
   {
-    email: "emp@hr.com",
-    password: "pass123",
+    email: "employee@hr.com",
+    password: "123456",
     role: "employee",
     description: "Personal HR self-service",
     icon: Zap,
@@ -289,7 +298,7 @@ export default function LoginPage() {
             <p className="mb-4 text-center text-xs text-slate-400">
               One-click access with demo accounts · password:{" "}
               <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-slate-600">
-                pass123
+                123456
               </code>
             </p>
 

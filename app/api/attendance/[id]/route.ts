@@ -1,27 +1,38 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getCompanyScope } from "@/lib/company-scope";
+import { getServerSession } from "@/lib/server-auth";
+
+const MANAGE_ROLES = ["super_admin", "company_admin", "hr_manager", "team_lead"];
 
 export async function PUT(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const body = await request.json();
-    const scope = getCompanyScope(request);
-
-    if (scope.shouldScope) {
-      const { data: existing } = await supabaseAdmin
-        .from("attendance")
-        .select("id, employees!inner(company_id)")
-        .eq("id", params.id)
-        .eq("employees.company_id", scope.companyId)
-        .maybeSingle();
-
-      if (!existing) {
-        return NextResponse.json({ error: "Attendance record not found in your company" }, { status: 403 });
-      }
+    const session = await getServerSession(request);
+    if (!session) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
+    if (!MANAGE_ROLES.includes(session.role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    let existingQuery = supabaseAdmin
+      .from("attendance")
+      .select("id, employees!inner(company_id)")
+      .eq("id", params.id);
+
+    if (session.role !== "super_admin") {
+      existingQuery = existingQuery.eq("employees.company_id", session.company_id);
+    }
+
+    const { data: existing } = await existingQuery.maybeSingle();
+
+    if (!existing) {
+      return NextResponse.json({ error: "Attendance record not found" }, { status: 404 });
+    }
+
+    const body = await request.json();
 
     const { data, error } = await supabaseAdmin
       .from("attendance")

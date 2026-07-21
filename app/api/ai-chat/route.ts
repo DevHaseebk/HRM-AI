@@ -1,16 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { callGemini, GeminiError, type GeminiContent } from "@/lib/ai-gemini";
+import { getServerSession } from "@/lib/server-auth";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-type Role = "super_admin" | "hr_manager" | "team_lead" | "employee";
+type Role = "super_admin" | "company_admin" | "hr_manager" | "team_lead" | "employee";
 
 type ChatRequest = {
   message: string;
   conversationHistory?: GeminiContent[];
-  userRole?: Role;
-  userName?: string;
 };
 
 /* ──────────────────────────────────────────────────────────
@@ -106,15 +105,21 @@ const NAME_STOPWORDS = new Set([
 ]);
 
 async function findEmployeeMention(
-  message: string
+  message: string,
+  companyId: string | null,
+  isUnscoped: boolean
 ): Promise<{ id: string; full_name: string } | null> {
   const lower = message.toLowerCase();
 
-  // Pull active employees (typically small enough to scan)
-  const { data: employees } = await supabaseAdmin
+  // Pull active employees (typically small enough to scan), scoped to the caller's company
+  let employeesQuery = supabaseAdmin
     .from("employees")
     .select("id, full_name")
     .eq("status", "active");
+  if (!isUnscoped) {
+    employeesQuery = employeesQuery.eq("company_id", companyId);
+  }
+  const { data: employees } = await employeesQuery;
 
   if (!employees || employees.length === 0) return null;
 
@@ -127,7 +132,7 @@ async function findEmployeeMention(
 
   // 2) Token-level match on first/last name — minimum 3 chars, must appear as a whole word
   const tokens = lower
-    .split(/[^a-zA-Z\u0600-\u06FF]+/)
+    .split(/[^a-zA-Z؀-ۿ]+/)
     .filter((t) => t.length >= 3 && !NAME_STOPWORDS.has(t));
 
   if (tokens.length === 0) return null;
@@ -171,21 +176,38 @@ function firstOfMonthISO() {
 async function fetchRelevantData(
   intent: Intent,
   matchedEmployee: { id: string; full_name: string } | null,
-  role: Role
+  role: Role,
+  companyId: string | null,
+  isUnscoped: boolean
 ) {
   const data: Record<string, any> = {};
-  const canSeePayroll = role === "super_admin" || role === "hr_manager";
+  const canSeePayroll = role === "super_admin" || role === "company_admin" || role === "hr_manager";
 
   // Always-on lightweight stats
+  let employeesCountQuery = supabaseAdmin
+    .from("employees")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "active");
+  if (!isUnscoped) employeesCountQuery = employeesCountQuery.eq("company_id", companyId);
+
+  let pendingLeavesQuery = supabaseAdmin
+    .from("leaves")
+    .select("*, employees!inner(company_id)", { count: "exact", head: true })
+    .eq("status", "pending");
+  if (!isUnscoped) pendingLeavesQuery = pendingLeavesQuery.eq("employees.company_id", companyId);
+
+  let openJobsQuery = supabaseAdmin
+    .from("jobs")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "open");
+  if (!isUnscoped) openJobsQuery = openJobsQuery.eq("company_id", companyId);
+
   const [
     { count: totalEmployees },
     { count: pendingLeaves },
     { count: openJobs },
-  ] = await Promise.all([
-    supabaseAdmin.from("employees").select("*", { count: "exact", head: true }).eq("status", "active"),
-    supabaseAdmin.from("leaves").select("*", { count: "exact", head: true }).eq("status", "pending"),
-    supabaseAdmin.from("jobs").select("*", { count: "exact", head: true }).eq("status", "open"),
-  ]);
+  ] = await Promise.all([employeesCountQuery, pendingLeavesQuery, openJobsQuery]);
+
   data.stats = {
     activeEmployees: totalEmployees ?? 0,
     pendingLeaves: pendingLeaves ?? 0,
@@ -193,13 +215,18 @@ async function fetchRelevantData(
     today: todayISO(),
   };
 
-  /* ───── Per-employee deep-dive ───── */
+  /* ───── Per-employee deep-dive ─────
+   * matchedEmployee is already resolved against the caller's company by
+   * findEmployeeMention(), so the id itself can't belong to another company.
+   * The company filter here is defense-in-depth on the lookup only; the
+   * sub-fetches below are keyed off this pre-validated employee id. */
   if (matchedEmployee) {
-    const { data: emp } = await supabaseAdmin
+    let empQuery = supabaseAdmin
       .from("employees")
       .select("id, full_name, email, phone, department, designation, joining_date, salary, status, cnic")
-      .eq("id", matchedEmployee.id)
-      .single();
+      .eq("id", matchedEmployee.id);
+    if (!isUnscoped) empQuery = empQuery.eq("company_id", companyId);
+    const { data: emp } = await empQuery.maybeSingle();
 
     if (emp) {
       // Hide salary unless authorized
@@ -260,9 +287,10 @@ async function fetchRelevantData(
   if (intent.isLeaveQuery && !matchedEmployee) {
     let q = supabaseAdmin
       .from("leaves")
-      .select("id, leave_type, start_date, end_date, status, reason, created_at, employees(full_name, department)")
+      .select("id, leave_type, start_date, end_date, status, reason, created_at, employees!inner(full_name, department, company_id)")
       .order("created_at", { ascending: false })
       .limit(25);
+    if (!isUnscoped) q = q.eq("employees.company_id", companyId);
 
     // status filter from keywords
     const msg = (intent as any)._raw as string | undefined;
@@ -281,10 +309,13 @@ async function fetchRelevantData(
         ? new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
         : todayISO();
 
-    const { data: attendance } = await supabaseAdmin
+    let q = supabaseAdmin
       .from("attendance")
-      .select("status, check_in, check_out, employees(full_name, department)")
+      .select("status, check_in, check_out, employees!inner(full_name, department, company_id)")
       .eq("date", date);
+    if (!isUnscoped) q = q.eq("employees.company_id", companyId);
+
+    const { data: attendance } = await q;
     data.attendanceForDate = { date, records: attendance ?? [] };
 
     if (attendance) {
@@ -302,14 +333,17 @@ async function fetchRelevantData(
     if (!canSeePayroll) {
       data.payrollRestricted = true;
     } else {
-      const { data: payroll } = await supabaseAdmin
+      let q = supabaseAdmin
         .from("payroll")
         .select(
-          "month, year, basic_salary, deductions, bonuses, net_salary, status, employees(full_name, department)"
+          "month, year, basic_salary, deductions, bonuses, net_salary, status, employees!inner(full_name, department, company_id)"
         )
         .order("year", { ascending: false })
         .order("month", { ascending: false })
         .limit(25);
+      if (!isUnscoped) q = q.eq("employees.company_id", companyId);
+
+      const { data: payroll } = await q;
       data.payroll = payroll ?? [];
 
       const totalNet = (payroll ?? []).reduce(
@@ -322,39 +356,48 @@ async function fetchRelevantData(
 
   /* ───── Recruitment ───── */
   if (intent.isRecruitmentQuery) {
-    const [{ data: jobs }, { data: applicants }] = await Promise.all([
-      supabaseAdmin
-        .from("jobs")
-        .select("id, title, department, status, created_at")
-        .order("created_at", { ascending: false })
-        .limit(20),
-      supabaseAdmin
-        .from("applicants")
-        .select("id, full_name, email, stage, created_at, jobs(title)")
-        .order("created_at", { ascending: false })
-        .limit(25),
-    ]);
+    let jobsQuery = supabaseAdmin
+      .from("jobs")
+      .select("id, title, department, status, created_at")
+      .order("created_at", { ascending: false })
+      .limit(20);
+    if (!isUnscoped) jobsQuery = jobsQuery.eq("company_id", companyId);
+
+    let applicantsQuery = supabaseAdmin
+      .from("applicants")
+      .select("id, full_name, email, stage, created_at, jobs!inner(title, company_id)")
+      .order("created_at", { ascending: false })
+      .limit(25);
+    if (!isUnscoped) applicantsQuery = applicantsQuery.eq("jobs.company_id", companyId);
+
+    const [{ data: jobs }, { data: applicants }] = await Promise.all([jobsQuery, applicantsQuery]);
     data.jobs = jobs ?? [];
     data.applicants = applicants ?? [];
   }
 
   /* ───── Performance (general) ───── */
   if (intent.isPerformanceQuery && !matchedEmployee) {
-    const { data: perf } = await supabaseAdmin
+    let q = supabaseAdmin
       .from("performance")
-      .select("period, rating, feedback, created_at, employees(full_name, department)")
+      .select("period, rating, feedback, created_at, employees!inner(full_name, department, company_id)")
       .order("created_at", { ascending: false })
       .limit(20);
+    if (!isUnscoped) q = q.eq("employees.company_id", companyId);
+
+    const { data: perf } = await q;
     data.performance = perf ?? [];
   }
 
   /* ───── Announcements ───── */
   if (intent.isAnnouncementQuery) {
-    const { data: ann } = await supabaseAdmin
+    let q = supabaseAdmin
       .from("announcements")
       .select("title, content, department, created_at")
       .order("created_at", { ascending: false })
       .limit(10);
+    if (!isUnscoped) q = q.eq("company_id", companyId);
+
+    const { data: ann } = await q;
     data.announcements = ann ?? [];
   }
 
@@ -362,12 +405,15 @@ async function fetchRelevantData(
   if (/last hired|recent hire|naya joiner|recently joined|new joiner/i.test(
     (intent as any)._raw ?? ""
   )) {
-    const { data: recent } = await supabaseAdmin
+    let q = supabaseAdmin
       .from("employees")
       .select("full_name, department, designation, joining_date")
       .eq("status", "active")
       .order("joining_date", { ascending: false })
       .limit(5);
+    if (!isUnscoped) q = q.eq("company_id", companyId);
+
+    const { data: recent } = await q;
     data.recentJoiners = recent ?? [];
   }
 
@@ -379,11 +425,14 @@ async function fetchRelevantData(
     canSeePayroll
   ) {
     const d = new Date();
-    const { data: monthPay } = await supabaseAdmin
+    let q = supabaseAdmin
       .from("payroll")
-      .select("net_salary, status, employees(full_name)")
+      .select("net_salary, status, employees!inner(full_name, company_id)")
       .eq("month", d.getMonth() + 1)
       .eq("year", d.getFullYear());
+    if (!isUnscoped) q = q.eq("employees.company_id", companyId);
+
+    const { data: monthPay } = await q;
     data.thisMonthPayroll = monthPay ?? [];
     data.thisMonthPayrollTotal = (monthPay ?? []).reduce(
       (sum, p) => sum + Number(p.net_salary ?? 0),
@@ -448,7 +497,12 @@ function buildSuggestions(
 const FALLBACK_REPLY =
   "I couldn't generate a response right now. Please try again in a moment.";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const session = await getServerSession(request);
+  if (!session) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
   let body: ChatRequest;
   try {
     body = (await request.json()) as ChatRequest;
@@ -461,18 +515,38 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Message is required" }, { status: 400 });
   }
 
-  const userRole = (body.userRole ?? "employee") as Role;
-  const userName = body.userName ?? "User";
+  const userRole = session.role as Role;
+  const isUnscoped = userRole === "super_admin";
+  const companyId = isUnscoped ? null : session.company_id;
 
-  // 1) Detect intent + employee mention (db-matched)
+  // Look up the caller's display name server-side instead of trusting body.userName
+  let userName = "User";
+  if (session.employee_id) {
+    const { data: emp } = await supabaseAdmin
+      .from("employees")
+      .select("full_name")
+      .eq("id", session.employee_id)
+      .maybeSingle();
+    if (emp?.full_name) userName = emp.full_name;
+  }
+  if (userName === "User") {
+    const { data: userRow } = await supabaseAdmin
+      .from("users")
+      .select("email")
+      .eq("id", session.id)
+      .maybeSingle();
+    if (userRow?.email) userName = userRow.email.split("@")[0];
+  }
+
+  // 1) Detect intent + employee mention (db-matched, company-scoped)
   const intent = detectIntent(message);
   (intent as any)._raw = message;
-  const matchedEmployee = await findEmployeeMention(message);
+  const matchedEmployee = await findEmployeeMention(message, companyId, isUnscoped);
 
-  // 2) Fetch contextual data
+  // 2) Fetch contextual data (company-scoped unless super_admin)
   let dbData: Record<string, any> = {};
   try {
-    dbData = await fetchRelevantData(intent, matchedEmployee, userRole);
+    dbData = await fetchRelevantData(intent, matchedEmployee, userRole, companyId, isUnscoped);
   } catch (err) {
     console.error("[ai-chat] data fetch failed:", err);
     dbData = { error: "Data fetch failed" };

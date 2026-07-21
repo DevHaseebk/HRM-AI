@@ -1,19 +1,36 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { sendAttendanceReminderEmail } from "@/lib/mailer";
+import { getServerSession } from "@/lib/server-auth";
+
+const ALLOWED_ROLES = ["super_admin", "company_admin", "hr_manager"];
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(request);
+    if (!session) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+    if (!ALLOWED_ROLES.includes(session.role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const date = todayISO();
 
-    const { data: employees, error: empError } = await supabaseAdmin
+    let employeesQuery = supabaseAdmin
       .from("employees")
       .select("id, full_name, email")
       .eq("status", "active");
+
+    if (session.role !== "super_admin") {
+      employeesQuery = employeesQuery.eq("company_id", session.company_id);
+    }
+
+    const { data: employees, error: empError } = await employeesQuery;
 
     if (empError) {
       return NextResponse.json({ error: empError.message }, { status: 500 });

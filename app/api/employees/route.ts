@@ -1,20 +1,26 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { supabaseAdmin } from "@/lib/supabase";
 import { generateTempPassword } from "@/lib/password-utils";
 import { sendCredentialsEmail } from "@/lib/mailer";
-import { getCompanyScope } from "@/lib/company-scope";
+import { getServerSession } from "@/lib/server-auth";
 
-export async function GET(request: Request) {
+const MANAGE_ROLES = ["super_admin", "company_admin", "hr_manager"];
+
+export async function GET(request: NextRequest) {
   try {
-    const scope = getCompanyScope(request);
+    const session = await getServerSession(request);
+    if (!session) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
     let query = supabaseAdmin
       .from("employees")
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (scope.shouldScope) {
-      query = query.eq("company_id", scope.companyId);
+    if (session.role !== "super_admin") {
+      query = query.eq("company_id", session.company_id);
     }
 
     const { data, error } = await query;
@@ -29,15 +35,29 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const session = await getServerSession(request);
+    if (!session) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+    if (!MANAGE_ROLES.includes(session.role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const body = await request.json();
-    const scope = getCompanyScope(request);
 
     if (!body.full_name || !body.email) {
       return NextResponse.json(
         { error: "full_name and email are required" },
         { status: 400 }
+      );
+    }
+
+    if (body.role === "company_admin" && session.role !== "super_admin") {
+      return NextResponse.json(
+        { error: "Only Super Admin can create Company Admin accounts" },
+        { status: 403 }
       );
     }
 
@@ -57,12 +77,16 @@ export async function POST(request: Request) {
     const tempPassword = generateTempPassword();
     const passwordHash = await bcrypt.hash(tempPassword, 10);
 
-    let companyId = body.company_id ?? (scope.shouldScope ? scope.companyId : null);
-    const requestedRole = body.role === "company_admin" && scope.role === "super_admin"
+    const requestedRole = body.role === "company_admin" && session.role === "super_admin"
       ? "company_admin"
       : "employee";
 
-    if (scope.role === "super_admin" && body.new_company_name && !companyId) {
+    // Non-super-admin callers can never choose a company; their own company is enforced.
+    let companyId: string | null = session.role === "super_admin"
+      ? (body.company_id ?? null)
+      : session.company_id;
+
+    if (session.role === "super_admin" && body.new_company_name && !companyId) {
       const { data: company, error: companyError } = await supabaseAdmin
         .from("companies")
         .insert({ name: String(body.new_company_name).trim() })
@@ -83,7 +107,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const employeePayload = companyId ? { ...body, company_id: companyId } : body;
+    const employeePayload = { ...body, company_id: companyId };
     delete employeePayload.role;
     delete employeePayload.new_company_name;
 

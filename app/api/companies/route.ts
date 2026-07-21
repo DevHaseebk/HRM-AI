@@ -1,17 +1,21 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getCompanyScope } from "@/lib/company-scope";
+import { getServerSession } from "@/lib/server-auth";
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
-    const scope = getCompanyScope(request);
+    const session = await getServerSession(request);
+    if (!session) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
     let query = supabaseAdmin
       .from("companies")
       .select("id, name")
       .order("name", { ascending: true });
 
-    if (scope.shouldScope) {
-      query = query.eq("id", scope.companyId);
+    if (session.role !== "super_admin") {
+      query = query.eq("id", session.company_id);
     }
 
     const { data, error } = await query;
@@ -25,10 +29,13 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const scope = getCompanyScope(request);
-    if (scope.role !== "super_admin") {
+    const session = await getServerSession(request);
+    if (!session) {
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    }
+    if (session.role !== "super_admin") {
       return NextResponse.json({ error: "Only Super Admin can create companies" }, { status: 403 });
     }
 
