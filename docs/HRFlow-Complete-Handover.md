@@ -6,6 +6,20 @@
 **For:** New Developer (Claude Code)  
 **Repo location:** `d:\project\hrm`
 
+### Monorepo layout (updated 24 July 2026 — API migrated)
+
+| Folder | Role |
+|--------|------|
+| `admin/` | Next.js 14 HR admin **UI only** — `app/api` removed; rewrites `/api` → Express |
+| `backend/` | **Express REST API** (all former Next API routes except legacy `/api/hrm/*`) |
+| `frontend/` / `mobile/` | Other clients (separate) |
+
+**Package handovers:** [`../HANDOVER.md`](../HANDOVER.md) (admin) · [`../../backend/HANDOVER.md`](../../backend/HANDOVER.md) (backend)
+
+**Backend migration runbook:** [`backend-migration-plan.md`](./backend-migration-plan.md)  
+
+**Migration status:** Complete. Admin is UI-only (backend libs/deps removed). Run `backend` on `:4000` and `admin` on `:3000` with `BACKEND_URL=http://localhost:4000`.
+
 ---
 
 ## 1. PROJECT OVERVIEW
