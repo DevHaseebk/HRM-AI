@@ -85,7 +85,7 @@ export default function LeavesPage() {
         reason: form.reason,
         status: "pending",
       });
-      await refetch();
+      refetch(); // fire-and-forget: refreshes in the background, doesn't block the UI
       setApplyOpen(false);
       setForm({ type: "annual", startDate: "", endDate: "", reason: "" });
       toast.success("Leave request submitted");
@@ -103,7 +103,7 @@ export default function LeavesPage() {
           status,
           approvedBy: user.employeeId,
         });
-        await refetch();
+        refetch(); // fire-and-forget: refreshes in the background, doesn't block the UI
         toast.success(`Leave ${status}`);
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Failed to update leave");

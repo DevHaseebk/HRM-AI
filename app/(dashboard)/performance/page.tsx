@@ -104,7 +104,7 @@ export default function PerformancePage() {
         });
         toast.success("Review created");
       }
-      await refetch();
+      refetch(); // fire-and-forget: refreshes in the background, doesn't block the UI
       setReviewOpen(false);
       setEditReview(null);
     } catch (err) {

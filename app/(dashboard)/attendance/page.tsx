@@ -210,7 +210,7 @@ function MyAttendanceTab({
       }
       setFeedback({ type: "success", message: json.message ?? "Checked in", checkInTime: json.checkInTime });
       toast.success(json.message ?? "Checked in");
-      await refetch();
+      refetch(); // fire-and-forget: refreshes in the background, doesn't block the UI
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Check-in failed");
     } finally {
@@ -255,7 +255,7 @@ function MyAttendanceTab({
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Check-out failed");
       toast.success(json.message ?? "Checked out");
-      await refetch();
+      refetch(); // fire-and-forget: refreshes in the background, doesn't block the UI
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Check-out failed");
     } finally {

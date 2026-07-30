@@ -73,7 +73,7 @@ export default function RecruitmentPage() {
     setSaving(true);
     try {
       await createRecord("jobs", { ...jobForm, status: "open" });
-      await refetch();
+      refetch(); // fire-and-forget: refreshes in the background, doesn't block the UI
       setJobOpen(false);
       toast.success("Job posting created");
     } catch (err) {
@@ -86,7 +86,7 @@ export default function RecruitmentPage() {
   const moveApplicant = async (applicant: Applicant, status: Applicant["status"]) => {
     try {
       await updateRecordApi<Applicant>("applicants", applicant.id, { status });
-      await refetch();
+      refetch(); // fire-and-forget: refreshes in the background, doesn't block the UI
       toast.success(`Moved to ${status}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to update applicant");

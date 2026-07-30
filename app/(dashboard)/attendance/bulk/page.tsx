@@ -111,7 +111,7 @@ export default function BulkAttendancePage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Bulk save failed");
       toast.success(json.message ?? `${json.count} employees marked successfully`);
-      await refetch();
+      refetch(); // fire-and-forget: refreshes in the background, doesn't block the UI
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Bulk save failed");
     } finally {

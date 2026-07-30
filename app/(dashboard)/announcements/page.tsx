@@ -89,7 +89,7 @@ export default function AnnouncementsPage() {
         authorId: user.employeeId,
         department: form.department,
       });
-      await refetch();
+      refetch(); // fire-and-forget: refreshes in the background, doesn't block the UI
       setCreateOpen(false);
       setForm({ title: "", content: "", priority: "medium", department: "All" });
       toast.success("Announcement published");
@@ -104,7 +104,7 @@ export default function AnnouncementsPage() {
     if (!deleteId) return;
     try {
       await deleteRecordApi("announcements", deleteId);
-      await refetch();
+      refetch(); // fire-and-forget: refreshes in the background, doesn't block the UI
       setDeleteId(null);
       toast.success("Announcement deleted");
     } catch (err) {

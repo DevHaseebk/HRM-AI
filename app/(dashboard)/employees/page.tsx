@@ -155,7 +155,7 @@ export default function EmployeesPage() {
         })) as { message?: string };
         toast.success(result.message ?? "Employee created and credentials sent to email");
       }
-      await refetch();
+      refetch(); // fire-and-forget: refreshes in the background, doesn't block the UI
       setDialogOpen(false);
       setEditEmployee(null);
     } catch (err) {
@@ -170,7 +170,7 @@ export default function EmployeesPage() {
     if (!deleteId) return;
     try {
       await deleteRecordApi("employees", deleteId);
-      await refetch();
+      refetch(); // fire-and-forget: refreshes in the background, doesn't block the UI
       setDeleteId(null);
       toast.success("Employee deleted");
     } catch (err) {

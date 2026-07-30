@@ -44,7 +44,7 @@ export default function SettingsPage() {
     try {
       const payload: CompanySettings = { ...settings, company, departments, designations };
       await updateSettings(payload);
-      await refetch();
+      refetch(); // fire-and-forget: refreshes in the background, doesn't block the UI
       toast.success("Settings saved");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Save failed");

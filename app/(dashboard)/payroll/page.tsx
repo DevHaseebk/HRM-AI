@@ -96,7 +96,7 @@ export default function PayrollPage() {
         netSalary: net,
         status: "processing",
       });
-      await refetch();
+      refetch(); // fire-and-forget: refreshes in the background, doesn't block the UI
       setGenerateOpen(false);
       toast.success("Payslip generated");
     } catch (err) {
@@ -109,7 +109,7 @@ export default function PayrollPage() {
   const handleMarkPaid = async (record: PayrollRecord) => {
     try {
       await updateRecordApi<PayrollRecord>("payroll", record.id, { status: "paid" });
-      await refetch();
+      refetch(); // fire-and-forget: refreshes in the background, doesn't block the UI
       toast.success("Marked as paid");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to update payroll");
